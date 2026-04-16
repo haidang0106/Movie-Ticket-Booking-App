@@ -1,0 +1,185 @@
+ĐẶC TẢ YÊU CẦU NGHIỆP VỤ
+HỆ THỐNG ĐẶT VÉ XEM PHIM ĐA NỀN TẢNG
+(Phiên bản cập nhật – bổ sung theo góp ý của giảng viên hướng dẫn)
+Mục
+Nội dung cập nhật
+Phần 3 – Bước 2
+Bổ sung ràng buộc ngoại lệ ghế: không để 2 ghế trống liên tiếp ở giữa hoặc 2 bên
+Phần 3 – Bước 5
+Sửa cơ chế khóa ghế: thay Optimistic Locking SQL bằng Redis Distributed Lock
+Phần 3 – Bước 6
+Làm rõ luồng QR thanh toán: sinh mã động, webhook callback, verify HMAC
+Phần 4
+Bổ sung Background Job xử lý đơn quá hạn (10 phút) với cơ chế cụ thể
+Phần 6
+Chính sách khuyến mãi lưu cấu hình linh hoạt vào DB, quản trị viên tự cấu hình
+Phần III
+Cổng thanh toán tách thành Web API service riêng, bảo vệ bằng HMAC
+PHẦN I. GIỚI THIỆU ĐỀ TÀI
+1. Tên đề tài: Xây dựng ứng dụng đặt vé xem phim đa nền tảng (Ứng dụng di động & Trình duyệt
+Web).
+2. Mục tiêu: Hệ thống cung cấp giải pháp toàn diện cho hành khách từ bước tra cứu, chọn rạp, suất
+chiếu đến đặt chỗ và thanh toán. Ứng dụng giải quyết triệt để các bài toán thực tế trong vận hành rạp
+phim như: cập nhật trạng thái giữ ghế theo thời gian thực, ngăn chặn đặt trùng ghế, tính toán giá vé
+linh hoạt và quản lý sơ đồ chỗ ngồi thông minh.
+3. Đối tượng sử dụng:
+• Khách hàng: Sử dụng ứng dụng trên thiết bị di động để đặt vé và thanh toán nhanh chóng.
+• Quản trị viên: Sử dụng giao diện trên nền web để quản lý rạp, phim và thống kê doanh thu.
+PHẦN II. MÔ TẢ YÊU CẦU NGHIỆP VỤ
+Hệ thống cần đáp ứng các nghiệp vụ chính cho cả khách hàng và ban quản trị, bao gồm các chức năng
+sau:
+1. Quản lý Tài khoản & Người dùng
+• Đăng ký tài khoản: Cho phép khách hàng tạo mới tài khoản thông qua thư điện tử (email)
+hoặc số điện thoại, kèm mật khẩu và thông tin cá nhân cơ bản. Hệ thống có cơ chế kiểm tra trùng
+lặp email và gửi thư xác nhận sau khi đăng ký thành công.
+• Đăng nhập & Phân quyền: Xác thực người dùng bằng email và mật khẩu. Hệ thống sử dụng
+thẻ xác thực (chuẩn bảo mật JWT) và phân chia quyền hạn rõ ràng giữa khách hàng thông
+thường và quản trị viên.
+2. Quản lý Mạng lưới Rạp & Định dạng Phim
+• Phân cấp mạng lưới rạp: Dữ liệu rạp được quản lý theo cấu trúc 3 tầng: Hệ thống rạp → Cụm
+rạp → Phòng chiếu. Việc này giúp khách hàng dễ dàng tìm kiếm cụm rạp theo khu vực địa lý.
+• Định dạng phim và Suất chiếu: Phân loại rõ các định dạng chiếu (2D, 3D, màn hình lớn
+IMAX). Một suất chiếu là sự kết hợp cụ thể của: Phim + Định dạng + Phòng chiếu + Khung giờ.
+• Quản lý Sơ đồ phòng chiếu linh hoạt: Sơ đồ phòng chiếu được thiết lập theo dạng ma trận
+(lưới tọa độ). Quản trị viên có thể tùy biến sơ đồ bằng cách đánh dấu các vị trí là "Lối đi" hoặc
+"Khu vực trống" (để đặt thiết bị), đảm bảo sơ đồ trên ứng dụng khớp 100% với không gian thực
+tế.
+3. Quy trình Đặt vé và Các ràng buộc cốt lõi
+Quy trình đặt vé tuân thủ luồng thao tác sau:
+Bước 1: Chọn Phim, Rạp và Suất chiếu
+Khách hàng lựa chọn phim, sau đó chọn rạp và suất chiếu phù hợp.
+Bước 2: Chọn Ghế ngồi & Ràng buộc
+[ĐÃ CẬP NHẬT THEO GÓP Ý GIẢNG VIÊN]
+Hệ thống hiển thị sơ đồ ghế tương ứng với phòng chiếu. Trạng thái từng ghế (còn trống, đang giữ, đã
+đặt) được hiển thị theo thời gian thực.
+Ràng buộc vị trí ghế (đã bổ sung và làm rõ):
+○ Khách hàng không được phép chọn ghế tạo ra đúng 1 khoảng trống đơn lẻ nằm giữa các
+ghế đã đặt hoặc sát mép tường/lối đi.
+○ [MỚI] Hệ thống cũng kiểm tra và từ chối nếu lựa chọn ghế tạo ra 2 ghế trống liên tiếp
+bị kẹp giữa – ở giữa dãy hoặc ở hai bên cạnh ghế đã đặt hoặc cạnh tường/lối đi. Mục tiêu
+đảm bảo không có ghế trống lẻ hoặc cặp ghế trống bị cô lập gây bất tiện cho các khách khác.
+○ Khi phát hiện vi phạm, hệ thống hiển thị cảnh báo rõ ràng và yêu cầu khách hàng điều
+chỉnh lựa chọn trước khi tiếp tục.
+Bước 3: Chọn Sản phẩm đi kèm (Bắp, Nước)
+Khách hàng xem danh sách các sản phẩm phụ trợ và có thể chọn số lượng bắp, nước đi kèm trước khi
+sang bước thanh toán.
+Bước 4: Áp dụng Khuyến mãi
+Khách hàng chọn mã giảm giá từ kho lưu trữ hoặc nhập mã thủ công. Hệ thống tự động đối chiếu
+điều kiện và tính toán lại tổng tiền.
+Bước 5: Xác nhận & Cơ chế Khóa ghế
+[ĐÃ CẬP NHẬT THEO GÓP Ý GIẢNG VIÊN]
+Khách hàng xác nhận thông tin tổng hợp (ghế, bắp nước, mã giảm giá). Sau đó hệ thống thực hiện
+khóa ghế tạm thời với cơ chế sau:
+○ Hệ thống ghi trạng thái HOLDING vào Redis với TTL = 10 phút (Redis Distributed
+Lock). Đây là lớp khóa tạm thời tốc độ cao, ngăn chặn race condition tại tầng Redis trước
+khi ghi xuống DB.
+○ Không sử dụng SELECT ... WITH (UPDLOCK) hoặc bất kỳ hình thức Update
+Lock ở tầng SQL, tránh gây deadlock và giảm hiệu năng dưới tải cao.
+○ Đồng thời phát tín hiệu qua WebSocket để cập nhật trạng thái "Đang giữ" trên màn hình
+của tất cả các khách hàng khác theo thời gian thực.
+○ Khi khóa Redis thành công, mới ghi bản ghi đặt vé tạm xuống Database với trạng thái
+PENDING_PAYMENT.
+Bước 6: Thanh toán qua QR Code
+[ĐÃ CẬP NHẬT THEO GÓP Ý GIẢNG VIÊN]
+Luồng thanh toán QR được thực hiện qua Payment Gateway Service (service riêng biệt – xem Phần
+III):
+○ Hệ thống sinh mã QR động chứa thông tin đơn hàng (order_id, số tiền, thời hạn hiệu lực
+TTL đồng bộ với thời gian khóa ghế). Mã QR được hiển thị trực tiếp trên giao diện khách
+hàng.
+○ Khách hàng quét mã QR bằng ứng dụng thanh toán (MoMo, VNPay hoặc tương đương).
+○ Sau khi giao dịch hoàn tất phía cổng thanh toán, cổng sẽ gọi Webhook callback về API
+Server để thông báo kết quả (thành công / thất bại).
+○ API Server verify chữ ký HMAC của toàn bộ payload webhook trước khi xử lý, đảm
+bảo tính toàn vẹn và chống giả mạo request trên đường truyền.
+○ Chỉ sau khi verify HMAC thành công, hệ thống mới tiến hành cập nhật trạng thái đơn
+hàng và ghế.
+4. Xử lý Kết quả Giao dịch & Quá hạn thanh toán
+Thành công:
+Hệ thống cập nhật trạng thái ghế thành "Đã xác nhận", ghi nhận dữ liệu chính thức, giải phóng bộ nhớ
+đệm giữ ghế trong Redis. Sau đó, tự động gửi thư điện tử xác nhận vé và cộng điểm tích lũy cho
+khách hàng.
+Hết hạn – Background Job xử lý quá hạn thanh toán:
+[ĐÃ CẬP NHẬT THEO GÓP Ý GIẢNG VIÊN]
+Hệ thống triển khai một Background Job chạy định kỳ (hoặc phản ứng theo sự kiện TTL expired
+của Redis) để xử lý các đơn hàng quá hạn. Cụ thể:
+○ Job quét toàn bộ đơn hàng ở trạng thái PENDING_PAYMENT đã tồn tại quá 10 phút
+mà chưa nhận được xác nhận thanh toán.
+○ Khi phát hiện đơn quá hạn, job tự động thực hiện tuần tự: (1) Chuyển trạng thái đơn sang
+EXPIRED → (2) Xóa key khóa ghế trong Redis → (3) Cập nhật trạng thái ghế về
+AVAILABLE trong Database → (4) Broadcast sự kiện qua WebSocket để cập nhật giao
+diện thời gian thực cho tất cả khách hàng đang xem suất chiếu.
+○ Đảm bảo tính nguyên tử (atomicity): nếu bất kỳ bước nào thất bại, job sẽ retry và ghi log
+lỗi để theo dõi.
+Hệ thống Giao dịch thanh toán & Xử lý sự cố (Payment Gateway):
+Đơn hàng luôn đi qua các bước kiểm soát nghiêm ngặt: CREATED → PENDING_PAYMENT →
+PROCESSING → SUCCESS hoặc FAILED.
+Luồng Rollback (Hoàn tiền/Nhả ghế):
+Nếu người dùng đã bị trừ tiền trong tài khoản, nhưng API của rạp báo lỗi "Ghế đã bị bán ở quầy
+offline", hệ thống phải tự động kích hoạt luồng Hoàn tiền (Refund) ngay lập tức và giải phóng vé.
+Đây là nghiệp vụ bắt buộc phải có để đảm bảo quyền lợi khách hàng.
+5. Chính sách Tính giá vé linh hoạt
+Giá vé của mỗi chiếc ghế được tính toán tự động dựa trên:
+• Giá cơ bản của suất chiếu: Thay đổi tùy theo ngày (ngày thường/cuối tuần) và định dạng
+chiếu.
+• Phụ thu vị trí ngồi: Các loại ghế khác nhau (ghế thường, ghế VIP ở trung tâm, ghế đôi) sẽ có
+mức phụ thu khác nhau được cộng thẳng vào giá cơ bản.
+6. Quản lý Khuyến mãi (Voucher & Campaign)
+[ĐÃ CẬP NHẬT THEO GÓP Ý GIẢNG VIÊN]
+Hệ thống cung cấp công cụ để quản trị viên linh hoạt tạo và cấu hình các chiến dịch khuyến mãi.
+Toàn bộ chính sách được lưu dưới dạng cấu hình linh hoạt trong Database – không hardcode
+trong mã nguồn – giúp quản trị viên thêm, sửa, xóa chính sách qua giao diện mà không cần deploy
+lại hệ thống.
+Các tính năng bao gồm:
+• Đa dạng hình thức: Hỗ trợ giảm giá theo phần trăm (%) hoặc giảm trừ một số tiền cố định.
+• Tối ưu theo hành vi mua hàng: Cấu hình tự động áp dụng khi khách hàng mua đạt số lượng
+vé nhất định (ví dụ: mua từ 3 vé trở lên) hoặc tự động phát hành mã ưu đãi vào các dịp lễ tết,
+sinh nhật thành viên.
+• Ràng buộc sử dụng khắt khe: Các mã giảm giá có thể được thiết lập yêu cầu mức giá trị đơn
+hàng tối thiểu, giới hạn số lần sử dụng, hoặc chỉ được áp dụng cho một số định dạng phim cụ thể
+(ví dụ: chỉ áp dụng cho phim định dạng 2D thông thường). Tất cả ràng buộc này đều được cấu
+hình và lưu vào DB, Voucher Engine đọc từ DB để đánh giá điều kiện áp dụng theo thời gian
+thực.
+• Voucher Engine (FEFO): Khi người dùng mở giỏ hàng, app tự động quét trong kho voucher
+của user, áp dụng nguyên tắc FEFO (First Expired, First Out) – ưu tiên gợi ý tự động voucher
+nào sắp hết hạn nhất để áp dụng giảm giá, thay vì bắt user tự tìm.
+7. Quản lý Vé và Hệ thống Thông báo
+• Tra cứu và Hủy vé: Khách hàng tra cứu lịch sử đặt vé. Hệ thống cho phép hủy vé nếu chưa
+đến giờ chiếu và sẽ lập tức cập nhật lại trạng thái ghế tương ứng về "Còn trống".
+Hệ thống thông báo:
+○ Gửi thông báo đẩy qua ứng dụng khi đặt vé thành công.
+○ Tự động nhắc nhở lịch chiếu cho khách hàng 30 phút trước khi bắt đầu.
+○ Gửi thông báo tiếp thị về phim mới dựa trên sở thích lưu trữ của khách hàng.
+8. Quản lý Dành cho Quản trị viên
+• Quản lý danh mục: Thêm, sửa, xóa phim; cập nhật lịch chiếu, cấu hình hệ thống cụm rạp và
+sơ đồ phòng chiếu.
+• Báo cáo thống kê: Cung cấp biểu đồ xem doanh thu theo từng phim, suất chiếu hoặc khoảng
+thời gian. Thống kê lượng tài khoản khách hàng mới và lượt vé bán ra.
+PHẦN III. CÁC CÔNG NGHỆ SỬ DỤNG
+Hệ thống được xây dựng trên các nền tảng công nghệ hiện đại, đảm bảo tính ổn định và khả năng xử
+lý đồng thời lượng lớn truy cập:
+• Giao diện phía Khách hàng (Frontend): Ứng dụng di động được xây dựng bằng React
+Native (hỗ trợ cả Android và iOS). Giao diện quản trị viên sử dụng HTML/CSS/JavaScript.
+• Hệ thống máy chủ (Backend): Sử dụng môi trường Node.js kết hợp bộ khung Express. Giao
+tiếp dữ liệu qua chuẩn REST API và kết nối hai chiều thời gian thực WebSocket.
+• Cơ sở dữ liệu: Lưu trữ dữ liệu có cấu trúc bằng SQL Server.
+• Bộ nhớ đệm & Distributed Lock: Redis được sử dụng để xử lý khóa ghế tạm thời tốc độ cao
+và làm lớp Distributed Lock ngăn chặn race condition khi nhiều người cùng đặt một ghế.
+• Background Job: Tác vụ nền xử lý đơn quá hạn, tích hợp với Redis TTL expired event hoặc
+cron job định kỳ để tự động giải phóng ghế và hủy đơn hàng không hoàn tất thanh toán.
+[ĐÃ CẬP NHẬT THEO GÓP Ý GIẢNG VIÊN]
+• Payment Gateway Service (Cổng thanh toán – Service riêng biệt):
+Cổng thanh toán được tách thành một Web API Service độc lập, không nằm chung với
+backend chính. Kiến trúc này đảm bảo tính độc lập, dễ mở rộng và bảo trì.
+– Giao tiếp bảo mật bằng HMAC: Toàn bộ payload trao đổi giữa API Server và Payment
+Service đều được ký bằng chữ ký HMAC (Hash-based Message Authentication Code). Phía
+nhận (API Server) phải verify chữ ký trước khi xử lý bất kỳ dữ liệu nào, đảm bảo tính toàn vẹn và
+chống giả mạo request trên đường truyền.
+– Webhook callback: Sau khi cổng thanh toán xử lý xong giao dịch, Payment Service gửi
+webhook về API Server. API Server chỉ cập nhật trạng thái đơn hàng sau khi verify HMAC thành
+công.
+– Sinh mã QR động: Payment Service chịu trách nhiệm sinh mã QR chứa thông tin giao dịch có
+thời hạn TTL đồng bộ với thời gian khóa ghế.
+• Bảo mật & Xác thực: JWT (JSON Web Token) cho xác thực người dùng, mã hóa HMAC
+cho bảo mật giao tiếp giữa các service, WebSocket cho cập nhật trạng thái thời gian thực.
+• Thông báo: Dịch vụ gửi thư điện tử Nodemailer để gửi email xác nhận vé và nhắc lịch chiếu.
+Tài liệu được cập nhật theo góp ý của giảng viên hướng dẫn. Phiên bản: 2.0 – Tháng 4/2026.
