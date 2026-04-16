@@ -349,6 +349,117 @@ Tất cả API phải trả về format thống nhất:
 | `429` | Too Many Requests (rate limit / OTP throttle) |
 | `500` | Internal server error |
 
+### ApiResponse — Utility chuẩn hóa Response
+
+Toàn bộ controller **BẮT BUỘC** sử dụng `ApiResponse` + `asyncHandler` để đảm bảo format thống nhất và xử lý lỗi tự động.
+
+**Cấu trúc files:**
+```
+backend/src/
+├── utils/
+│   ├── index.js              ← Barrel file (gom exports)
+│   ├── apiResponse.js        ← Class trả response chuẩn
+│   ├── appError.js           ← Custom error class
+│   └── asyncHandler.js       ← Wrapper try/catch tự động
+└── middlewares/
+    └── errorHandler.js       ← Global error handler (đặt sau routes)
+```
+
+**Import nhanh (1 dòng):**
+```javascript
+const { ApiResponse, AppError, asyncHandler } = require('../utils');
+```
+
+**Ví dụ Controller hoàn chỉnh:**
+```javascript
+// controllers/movie/movie.controller.js
+const { ApiResponse, AppError, asyncHandler } = require('../../utils');
+const movieService = require('../../services/movie.service');
+
+// GET /api/movies — Danh sách phim (phân trang)
+const getMovies = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const { movies, total } = await movieService.getAll({ page, limit });
+  return ApiResponse.paginate(res, movies, { page, limit, total });
+});
+
+// GET /api/movies/:id — Chi tiết phim
+const getMovieById = asyncHandler(async (req, res) => {
+  const movie = await movieService.getById(req.params.id);
+  if (!movie) throw AppError.notFound('Phim không tồn tại', 'MOVIE_NOT_FOUND');
+  return ApiResponse.ok(res, movie);
+});
+
+// POST /api/admin/movies — Thêm phim (Admin)
+const createMovie = asyncHandler(async (req, res) => {
+  const movie = await movieService.create(req.body);
+  return ApiResponse.created(res, movie, 'Thêm phim thành công');
+});
+
+// POST /api/bookings — Đặt vé (kiểm tra ràng buộc ghế)
+const createBooking = asyncHandler(async (req, res) => {
+  const { showId, seatIds } = req.body;
+
+  // Kiểm tra ràng buộc ghế trống
+  const violation = await bookingService.checkSeatConstraints(showId, seatIds);
+  if (violation) {
+    throw new AppError(violation.message, 422, 'SEAT_CONSTRAINT_VIOLATION');
+  }
+
+  // Khóa ghế Redis
+  const lockResult = await bookingService.holdSeats(showId, seatIds, req.user.customerId);
+  if (!lockResult.success) {
+    throw AppError.conflict('Ghế đã được giữ bởi người khác', 'SEAT_ALREADY_HELD');
+  }
+
+  const booking = await bookingService.create(req.body, req.user.customerId);
+  return ApiResponse.created(res, booking, 'Đặt vé thành công, vui lòng thanh toán trong 10 phút');
+});
+
+module.exports = { getMovies, getMovieById, createMovie, createBooking };
+```
+
+**Toàn bộ methods của `ApiResponse`:**
+
+| Method | Status | Khi nào dùng |
+|--------|--------|-------------|
+| `ApiResponse.ok(res, data, message)` | 200 | GET / UPDATE thành công |
+| `ApiResponse.created(res, data, message)` | 201 | POST tạo mới thành công |
+| `ApiResponse.paginate(res, data, { page, limit, total })` | 200 | Danh sách có phân trang |
+| `ApiResponse.badRequest(res, message, errorCode)` | 400 | Validation error |
+| `ApiResponse.unauthorized(res, message, errorCode)` | 401 | Chưa xác thực |
+| `ApiResponse.forbidden(res, message, errorCode)` | 403 | Không có quyền |
+| `ApiResponse.notFound(res, message, errorCode)` | 404 | Không tìm thấy |
+| `ApiResponse.conflict(res, message, errorCode)` | 409 | Xung đột dữ liệu |
+| `ApiResponse.unprocessable(res, message, errorCode)` | 422 | Vi phạm nghiệp vụ |
+| `ApiResponse.tooManyRequests(res, message, errorCode)` | 429 | Rate limit / OTP throttle |
+| `ApiResponse.internal(res, message, errorCode)` | 500 | Lỗi hệ thống |
+
+**Toàn bộ factory methods của `AppError`** (dùng khi `throw` trong service/controller):
+
+| Factory | Status | Ví dụ |
+|---------|--------|-------|
+| `AppError.badRequest(msg, code)` | 400 | `throw AppError.badRequest('Email đã tồn tại', 'EMAIL_EXISTS')` |
+| `AppError.unauthorized(msg, code)` | 401 | `throw AppError.unauthorized('Token không hợp lệ', 'INVALID_TOKEN')` |
+| `AppError.forbidden(msg, code)` | 403 | `throw AppError.forbidden('Chỉ ADMIN mới được truy cập')` |
+| `AppError.notFound(msg, code)` | 404 | `throw AppError.notFound('Phim không tồn tại', 'MOVIE_NOT_FOUND')` |
+| `AppError.conflict(msg, code)` | 409 | `throw AppError.conflict('Ghế đã được đặt', 'SEAT_ALREADY_BOOKED')` |
+| `AppError.unprocessable(msg, code)` | 422 | `throw AppError.unprocessable('Vi phạm ràng buộc ghế', 'SEAT_CONSTRAINT')` |
+| `AppError.tooManyRequests(msg, code)` | 429 | `throw AppError.tooManyRequests('Vượt giới hạn OTP', 'OTP_THROTTLE')` |
+
+**Setup trong `server.js`:**
+```javascript
+const express = require('express');
+const errorHandler = require('./src/middlewares/errorHandler');
+
+const app = express();
+
+// ... routes ...
+
+// ⚠️ Error handler PHẢI đặt SAU tất cả routes
+app.use(errorHandler);
+```
+
 ### Naming Conventions
 
 ```javascript
