@@ -1,5 +1,5 @@
 /**
- * errorHandler — Global Error Handling Middleware
+ * errorHandler — Middleware xử lý lỗi toàn cục
  *
  * Đặt SAU tất cả routes trong server.js:
  *   app.use(errorHandler);
@@ -10,8 +10,8 @@
 const AppError = require('../utils/appError');
 
 const errorHandler = (err, req, res, next) => {
-  // Log lỗi (production dùng winston/pino thay console)
-  console.error(`[ERROR] ${err.statusCode || 500} — ${err.message}`);
+  // Ghi log lỗi (production nên dùng winston/pino thay console)
+  console.error(`[LỖI] ${err.statusCode || 500} — ${err.message}`);
   if (process.env.NODE_ENV === 'development') {
     console.error(err.stack);
   }
