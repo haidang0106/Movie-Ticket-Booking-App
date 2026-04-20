@@ -1,0 +1,90 @@
+:root {
+  /* Mảng màu Dark Mode phong cách Netflix */
+  --bg-dark: #141414; /* Màu nền chính (Netflix style) */
+  --bg-surface: #181818;
+  --bg-surface-hover: #232323;
+  --bg-elevated: #282828;
+
+  --color-primary: #E50914; /* Đỏ Netflix */
+  --color-primary-hover: #F40612;
+  --color-danger: #E50914;
+  --color-success: #2ecc71;
+  --color-warning: #f1c40f;
+  --color-info: #3498db;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #B3B3B3;
+  --text-muted: #808080;
+
+  --border-color: #333333;
+  --border-light: rgba(255, 255, 255, 0.1);
+
+  /* Typography */
+  --font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  
+  /* Layout */
+  --sidebar-width: 260px;
+  --header-height: 70px;
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+}
+
+/* Reset CSS */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 15px;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color var(--transition-fast);
+}
+
+ul {
+  list-style: none;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Typography Utilities */
+.h1, h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+.h2, h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+.h3, h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+.text-secondary { color: var(--text-secondary); }
+.text-danger { color: var(--color-danger); }
+.text-success { color: var(--color-success); }
+.text-primary { color: var(--color-primary); }
+
+/* Layout Structure */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Base Styles applied inside index.html for specific components */
