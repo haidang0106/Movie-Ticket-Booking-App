@@ -15,8 +15,9 @@ const dbConfig: sql.config = {
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'MovieTicketDB',
   options: {
-    encrypt: false,             // true nếu dùng Azure
-    trustServerCertificate: true // dev local luôn để true
+    encrypt: false,
+    trustServerCertificate: true,
+    instanceName: process.env.DB_INSTANCE // Thêm dòng này
   },
   pool: {
     max: 10,

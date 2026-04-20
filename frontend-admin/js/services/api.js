@@ -3,8 +3,8 @@
  */
 class ApiService {
   constructor() {
-    // Để trống baseUrl để có thể thay đổi sau nếu backend chạy cổng khác
-    this.baseUrl = '/api'; 
+    // Trỏ về Backend thật (Port 3000)
+    this.baseUrl = 'http://localhost:3000/api'; 
   }
 
   // Lấy token từ localStorage (sẽ implement lúc làm tính năng Auth)

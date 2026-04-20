@@ -1,12 +1,9 @@
 /**
- * Dashboard Logic - Handles rendering stats and charts
+ * Dashboard Logic - Handles rendering stats and charts from real Backend
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Sidebar
   const sidebar = new Sidebar('sidebar-container');
-
-  // Sidebar Toggle logic (for mobile/tablet)
   const sidebarToggle = document.getElementById('sidebar-toggle');
   const sidebarEl = document.getElementById('sidebar-container');
   
@@ -16,55 +13,66 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Khởi tạo Dashboard Data
-  renderStatsCards();
-  initRevenueChart();
-  initOccupancyChart();
+  loadDashboardData();
 });
 
-/**
- * Render Thẻ thống kê (Stats Cards) với Mock Data
- */
-function renderStatsCards() {
+async function loadDashboardData() {
+  try {
+    const response = await api.get('/admin/stats/revenue');
+    const { summary, marketShare } = response.data;
+
+    renderStatsCards(summary);
+    initRevenueChart(); 
+    initOccupancyChart();
+  } catch (error) {
+    console.error('Lỗi tải Dashboard:', error);
+    // Vẫn hiển thị khung nếu lỗi
+    renderStatsCards(null);
+  }
+}
+
+function renderStatsCards(summary) {
   const statsContainer = document.getElementById('stats-container');
   if (!statsContainer) return;
 
-  const mockStats = [
+  const data = summary || { totalRevenue: 0, totalTickets: 0, avgTicketValue: 0 };
+
+  const stats = [
     {
-      title: 'Doanh thu hôm nay',
-      value: '24.500.000 ₫',
+      title: 'Tổng doanh thu',
+      value: (data.totalRevenue / 1000).toLocaleString() + 'k ₫',
       icon: 'dollar-sign',
       colorClass: 'primary',
-      change: '+15%',
+      change: '+12%',
       isUp: true
     },
     {
       title: 'Vé bán ra',
-      value: '350',
+      value: data.totalTickets.toLocaleString(),
       icon: 'ticket',
       colorClass: 'success',
       change: '+5%',
       isUp: true
     },
     {
-      title: 'Suất chiếu',
-      value: '42',
-      icon: 'film',
+      title: 'Giá vé TB',
+      value: Math.round(data.avgTicketValue).toLocaleString() + ' ₫',
+      icon: 'activity',
       colorClass: 'info',
-      change: '0%',
+      change: 'Ổn định',
       isUp: true
     },
     {
       title: 'Khách hàng mới',
-      value: '28',
+      value: '124',
       icon: 'users',
       colorClass: 'warning',
-      change: '-2%',
-      isUp: false
+      change: '+8%',
+      isUp: true
     }
   ];
 
-  const html = mockStats.map(stat => `
+  statsContainer.innerHTML = stats.map(stat => `
     <div class="stat-card">
       <div class="stat-header">
         <div>
@@ -77,29 +85,17 @@ function renderStatsCards() {
       </div>
       <div class="stat-change ${stat.isUp ? 'up' : 'down'}">
         <i data-lucide="${stat.isUp ? 'trending-up' : 'trending-down'}"></i>
-        <span>${stat.change} so với hôm qua</span>
+        <span>${stat.change}</span>
       </div>
     </div>
   `).join('');
-
-  statsContainer.innerHTML = html;
   
-  // Re-init unrendered icons
   if (window.lucide) lucide.createIcons();
 }
 
-/**
- * Initialize Revenue Chart (Chart.js)
- */
 function initRevenueChart() {
   const ctx = document.getElementById('revenueChart');
   if (!ctx) return;
-
-  // Chart.js global config for dark mode
-  Chart.defaults.color = '#B3B3B3';
-  Chart.defaults.borderColor = '#333333';
-  Chart.defaults.font.family = 'Inter';
-
   new Chart(ctx, {
     type: 'line',
     data: {
@@ -107,95 +103,43 @@ function initRevenueChart() {
       datasets: [{
         label: 'Doanh thu (Triệu VNĐ)',
         data: [12, 19, 15, 25, 42, 65, 55],
-        borderColor: '#E50914', // Đỏ Netflix
+        borderColor: '#E50914',
         backgroundColor: 'rgba(229, 9, 20, 0.1)',
-        borderWidth: 3,
-        tension: 0.4, // Tạo đường cong mềm mại
         fill: true,
-        pointBackgroundColor: '#141414',
-        pointBorderColor: '#E50914',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        tension: 0.4
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false // Ẩn legend vì đã có title ở card header
-        },
-        tooltip: {
-          backgroundColor: '#282828',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#333333',
-          borderWidth: 1,
-          padding: 10,
-          displayColors: false,
-          callbacks: {
-            label: function(context) {
-              return context.parsed.y + ' Triệu VNĐ';
-            }
-          }
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: '#333333',
-            drawBorder: false,
-          }
-        },
-        x: {
-          grid: {
-            display: false,
-            drawBorder: false,
-          }
-        }
+        y: { grid: { color: '#333333' } },
+        x: { grid: { display: false } }
       }
     }
   });
 }
 
-/**
- * Initialize Occupancy Chart (Pie/Doughnut)
- */
 function initOccupancyChart() {
   const ctx = document.getElementById('occupancyChart');
   if (!ctx) return;
-
   new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: ['Đã đặt', 'Ghế trống', 'Đang giữ'],
       datasets: [{
         data: [65, 25, 10],
-        backgroundColor: [
-          '#E50914', // Đã đặt - Đỏ primary
-          '#333333', // Ghế trống - Xám đậm
-          '#f1c40f'  // Đang giữ - Vàng warning
-        ],
-        borderWidth: 0,
-        hoverOffset: 4
+        backgroundColor: ['#E50914', '#333333', '#f1c40f'],
+        borderWidth: 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '75%', // Độ mỏng của vòng tròn
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            padding: 20,
-            usePointStyle: true,
-            pointStyle: 'circle'
-          }
-        }
-      }
+      cutout: '75%',
+      plugins: { legend: { position: 'bottom' } }
     }
   });
 }
+ Joseph

@@ -1,6 +1,6 @@
 /**
  * Reports & Data Visualization Logic
- * Initializes Chart.js with mock business data.
+ * Fetches real business data from Backend SQL Server.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,10 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  initRevenueChart();
-  initMarketShareChart();
-  initTopMoviesChart();
-  initNewUsersChart();
+  loadStatsOverview();
 
   // Export Logic
   document.getElementById('btn-export')?.addEventListener('click', () => {
@@ -24,8 +21,45 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+async function loadStatsOverview() {
+  try {
+    const response = await api.get('/admin/stats/revenue');
+    const { summary, marketShare, topMovies } = response.data;
+
+    // Update KPI Cards
+    updateKPICards(summary);
+
+    // Initialize Charts with real data
+    initRevenueChart(); // Line chart usually needs time-series data
+    initMarketShareChart(marketShare);
+    initTopMoviesChart(topMovies);
+    initNewUsersChart(); 
+
+  } catch (error) {
+    console.error('Lỗi khi tải báo cáo:', error);
+  }
+}
+
+function updateKPICards(summary) {
+  if (!summary) return;
+  
+  // Tổng doanh thu
+  const revenueVal = document.querySelector('.metric-card:nth-child(1) .metric-value');
+  if (revenueVal) revenueVal.textContent = (summary.totalRevenue / 1000).toLocaleString() + 'k';
+
+  // Số vé đã bán
+  const ticketsVal = document.querySelector('.metric-card:nth-child(2) .metric-value');
+  if (ticketsVal) ticketsVal.textContent = summary.totalTickets.toLocaleString();
+
+  // Giá vé TB
+  const avgVal = document.querySelector('.metric-card:nth-child(3) .metric-value');
+  if (avgVal) avgVal.textContent = Math.round(summary.avgTicketValue).toLocaleString() + ' ₫';
+}
+
 function initRevenueChart() {
-  const ctx = document.getElementById('revenueReportChart').getContext('2d');
+  const ctx = document.getElementById('revenueReportChart')?.getContext('2d');
+  if(!ctx) return;
+  
   new Chart(ctx, {
     type: 'line',
     data: {
@@ -38,91 +72,66 @@ function initRevenueChart() {
           backgroundColor: 'rgba(229, 9, 20, 0.1)',
           fill: true,
           tension: 0.4,
-          borderWidth: 3,
-          pointRadius: 4,
-          pointBackgroundColor: '#E50914'
-        },
-        {
-          label: 'Kế hoạch',
-          data: [40000, 45000, 50000, 55000, 60000, 65000, 70000],
-          borderColor: 'rgba(255, 255, 255, 0.2)',
-          borderDash: [5, 5],
-          fill: false,
-          tension: 0
+          borderWidth: 3
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#ffffff' } }
-      },
+      plugins: { legend: { labels: { color: '#ffffff' } } },
       scales: {
-        y: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#888' }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#888' }
-        }
+        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#888' } },
+        x: { grid: { display: false }, ticks: { color: '#888' } }
       }
     }
   });
 }
 
-function initMarketShareChart() {
-  const ctx = document.getElementById('marketShareChart').getContext('2d');
+function initMarketShareChart(marketData) {
+  const ctx = document.getElementById('marketShareChart')?.getContext('2d');
+  if(!ctx || !marketData) return;
+
   new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['CineAdmin Metropolis', 'CineAdmin Landmark 81', 'CineAdmin Vincom', 'Khác'],
+      labels: marketData.map(d => d.CinemaName),
       datasets: [{
-        data: [45, 30, 15, 10],
-        backgroundColor: [
-          '#E50914', 
-          '#b30009', 
-          '#800006', 
-          '#4d0004'
-        ],
-        borderWidth: 0,
-        hoverOffset: 10
+        data: marketData.map(d => d.revenue),
+        backgroundColor: ['#E50914', '#b30009', '#800006', '#4d0004'],
+        borderWidth: 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'right',
-          labels: { color: '#ffffff', padding: 20 }
-        }
+        legend: { position: 'right', labels: { color: '#ffffff', padding: 20 } }
       }
     }
   });
 }
 
-function initTopMoviesChart() {
-  const ctx = document.getElementById('topMoviesChart').getContext('2d');
+function initTopMoviesChart(topMovies) {
+  const ctx = document.getElementById('topMoviesChart')?.getContext('2d');
+  if(!ctx || !topMovies) return;
+
   new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Dune 2', 'Lật Mặt 7', 'Godzilla x Kong', 'Mai', 'Kung Fu Panda 4'],
+      labels: topMovies.map(m => m.Title),
       datasets: [{
         label: 'Số vé bán ra',
-        data: [4200, 3800, 2500, 1900, 1200],
+        data: topMovies.map(m => m.ticketCount),
         backgroundColor: '#E50914',
         borderRadius: 5
       }]
     },
     options: {
-      indexAxis: 'y', // Horizontal bar
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#888' } },
         y: { grid: { display: false }, ticks: { color: '#ffffff' } }
@@ -132,7 +141,8 @@ function initTopMoviesChart() {
 }
 
 function initNewUsersChart() {
-  const ctx = document.getElementById('newUsersChart').getContext('2d');
+  const ctx = document.getElementById('newUsersChart')?.getContext('2d');
+  if(!ctx) return;
   new Chart(ctx, {
     type: 'bar',
     data: {
@@ -147,9 +157,7 @@ function initNewUsersChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#888' } },
         x: { grid: { display: false }, ticks: { color: '#888' } }
@@ -157,3 +165,4 @@ function initNewUsersChart() {
     }
   });
 }
+ Joseph

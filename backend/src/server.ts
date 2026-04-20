@@ -35,15 +35,9 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// TV1: app.use('/api/auth',         authRoutes);
-// TV1: app.use('/api/customer',     customerRoutes);
-// TV2: app.use('/api/movies',       movieRoutes);
-// TV2: app.use('/api/cinemas',      cinemaRoutes);
-// TV3: app.use('/api/bookings',     bookingRoutes);
-// TV4: app.use('/api/payments',     paymentRoutes);
-// TV4: app.use('/api/vouchers',     voucherRoutes);
-// TV4: app.use('/api/notifications', notificationRoutes);
-// TV5: app.use('/api/admin',        adminRoutes);
+// TV5: 
+import adminRoutes from './routes/admin.routes';
+app.use('/api/admin', adminRoutes);
 
 // ==========================================
 // 3. XỬ LÝ ROUTE KHÔNG TỒN TẠI (404)
