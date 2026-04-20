@@ -1,4 +1,6 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
 import { AccountModel, AccountPayload } from '../models/account.model';
 import { CustomerModel } from '../models/customer.model';
 import { AppException } from '../utils/exceptions/app.exception';
@@ -37,6 +39,54 @@ export class AuthService {
       accountId: createdAccount.AccountID,
       customerId: createdCustomer.CustomerID,
       email: createdAccount.Email,
+    };
+  }
+
+  /**
+   * Đăng nhập cơ bản (Chưa OTP)
+   * Kiểm tra thông tin, hash và trả về JWT Access Token (Dữ liệu tối thiểu).
+   */
+  static async loginBasic(email: string, passwordRaw: string) {
+    // 0. Chuẩn hóa email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 1. Kiểm tra tài khoản
+    const account = await AccountModel.findByEmail(normalizedEmail);
+    if (!account) {
+      throw new AppException(ErrorCode.USER_NOT_EXISTED);
+    }
+
+    // 2. Chặn tài khoản bị vô hiệu hóa
+    if (!account.IsActive) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    // 3. Đối chiếu mật khẩu
+    const isMatch = await bcrypt.compare(passwordRaw, account.PasswordHash);
+    if (!isMatch) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    // 4. Khởi tạo Access Token (Payload cơ bản)
+    const payload = {
+      accountId: account.AccountID,
+      accountType: account.AccountType,
+    };
+    
+    // Đọc cấu hình từ biến môi trường
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    const expiresIn = (process.env.JWT_EXPIRES_IN as any) || '15m';
+
+    const accessToken = jwt.sign(payload, secret, { expiresIn });
+
+    // 5. Trả về thông tin tối thiểu
+    return {
+      accountId: account.AccountID,
+      accountType: account.AccountType,
+      accessToken
     };
   }
 }

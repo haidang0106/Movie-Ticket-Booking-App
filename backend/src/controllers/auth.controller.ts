@@ -22,4 +22,18 @@ export class AuthController {
     // HTTP Status Code 201 đại diện cho thao tác tạo mới Resource thành công.
     res.status(201).json(responseBody);
   });
+
+  /**
+   * Xử lý luồng đăng nhập cơ bản:
+   * Trích xuất req.body, gọi Service và trả về Access Token.
+   */
+  static login = asyncHandler(async (req: Request, res: Response) => {
+    const { email, password } = req.body;
+
+    const result = await AuthService.loginBasic(email, password);
+
+    const responseBody = ApiResponse.success(ResponseCode.LOGIN_SUCCESS, result);
+
+    res.status(200).json(responseBody);
+  });
 }
