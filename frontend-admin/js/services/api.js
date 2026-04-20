@@ -1,3 +1,16 @@
+// =====================================
+// GLOBAL ROUTE GUARD (TV5)
+// Kiểm tra nếu chưa đăng nhập thì đẩy ra ngoài
+// Ngoại trừ trang login.html
+// =====================================
+const currentPage = window.location.pathname;
+if (!currentPage.endsWith('login.html')) {
+  const token = localStorage.getItem('admin_token');
+  if (!token) {
+    window.location.href = 'login.html';
+  }
+}
+
 /**
  * API Service class handling all HTTP requests
  */

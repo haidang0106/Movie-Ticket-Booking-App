@@ -72,11 +72,11 @@
 }
 
 .sidebar-footer {
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   border-top: 1px solid var(--border-color);
 }
 
-.btn-logout {
+.btn-collapse {
   display: flex;
   align-items: center;
   width: 100%;
@@ -86,15 +86,55 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
+  gap: 1rem;
 }
 
-.btn-logout i {
-  margin-right: 1rem;
-  width: 20px;
-  height: 20px;
+.btn-collapse:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-primary);
 }
 
-.btn-logout:hover {
-  background-color: rgba(229, 9, 20, 0.1);
-  color: var(--color-danger);
+/* Sidebar Collapsed State */
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .sidebar-link span,
+.sidebar.collapsed .btn-collapse span {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header,
+.sidebar.collapsed .sidebar-footer {
+  padding: 1rem;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-logo {
+  font-size: 1.2rem;
+}
+
+.sidebar.collapsed .sidebar-link i,
+.sidebar.collapsed .btn-collapse i {
+  margin-right: 0;
+}
+
+.sidebar-collapsed .main-content {
+  margin-left: 0; /* Adjust if main content width depends on sidebar */
+}
+
+/* Mobile responsive */
+@media (max-width: 992px) {
+  .sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transition: left 0.3s ease;
+  }
+  .sidebar.mobile-show {
+    left: 0;
+  }
 }

@@ -37,7 +37,9 @@ app.get('/api/health', (req: Request, res: Response) => {
 
 // TV5: 
 import adminRoutes from './routes/admin.routes';
+import authRoutes from './routes/auth.routes';
 app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
 
 // ==========================================
 // 3. XỬ LÝ ROUTE KHÔNG TỒN TẠI (404)
@@ -62,6 +64,10 @@ const startServer = async () => {
   try {
     // Kết nối SQL Server trước khi mở cổng lắng nghe
     await connectDB();
+    
+    // Seed tài khoản admin mặc định
+    const { seedAdmin } = require('./utils/seed');
+    await seedAdmin();
 
     app.listen(PORT, () => {
       console.log(`[🚀 Server]  Đang chạy tại http://localhost:${PORT}`);

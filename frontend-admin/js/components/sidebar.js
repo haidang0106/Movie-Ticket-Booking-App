@@ -41,6 +41,10 @@ class Sidebar {
       `;
     }).join('');
 
+    // Lấy thông tin User từ localStorage
+    const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+    const adminName = adminUser.name || 'Quản trị viên';
+
     this.container.innerHTML = `
       <div class="sidebar-header">
         <h2 class="sidebar-logo">
@@ -51,14 +55,13 @@ class Sidebar {
         ${menuItemsHtml}
       </ul>
       <div class="sidebar-footer">
-        <button id="logout-btn" class="btn-logout">
-          <i data-lucide="log-out"></i>
-          <span>Đăng xuất</span>
+        <button id="sidebar-collapse-btn" class="btn-collapse">
+          <i data-lucide="chevron-left"></i>
+          <span>Thu gọn menu</span>
         </button>
       </div>
     `;
 
-    // Initialize Lucide icons if available
     if (window.lucide) {
       lucide.createIcons();
     }
@@ -66,11 +69,44 @@ class Sidebar {
 
   // Khởi tạo các sự kiện
   bindEvents() {
-    const logoutBtn = this.container.querySelector('#logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        // Handle logout logic, clear token, redirect to login
-        alert('Tính năng đăng xuất sẽ được thực hiện khi làm phần Auth!');
+    // 1. Logic Thu gọn Sidebar
+    const collapseBtn = this.container.querySelector('#sidebar-collapse-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const layout = document.querySelector('.admin-layout');
+    
+    if (collapseBtn && sidebar) {
+      collapseBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        if (layout) layout.classList.toggle('sidebar-collapsed');
+        
+        // Cập nhật icon
+        const icon = collapseBtn.querySelector('i');
+        if (sidebar.classList.contains('collapsed')) {
+          icon.setAttribute('data-lucide', 'chevron-right');
+        } else {
+          icon.setAttribute('data-lucide', 'chevron-left');
+        }
+        if (window.lucide) lucide.createIcons();
+        
+        // Lưu trạng thái vào localStorage
+        localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+      });
+
+      // Khôi phục trạng thái từ localStorage
+      if (localStorage.getItem('sidebar_collapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        if (layout) layout.classList.add('sidebar-collapsed');
+        const icon = collapseBtn.querySelector('i');
+        icon.setAttribute('data-lucide', 'chevron-right');
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    // Nút toggle sidebar trên Mobile (nếu có trong header)
+    const mobileToggle = document.getElementById('sidebar-toggle');
+    if (mobileToggle && sidebar) {
+      mobileToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('mobile-show');
       });
     }
   }
