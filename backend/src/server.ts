@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { connectDB } from './config/database';
 import { globalExceptionHandler } from './utils/exceptions/global.exception.handler';
 import authRoutes from './routes/auth.routes';
+import customerRoutes from './routes/customer.routes';
 
 // Load biến môi trường từ file .env
 dotenv.config();
@@ -37,7 +38,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 app.use('/api/auth',         authRoutes);
-// TV1: app.use('/api/customer',     customerRoutes);
+app.use('/api/customer',     customerRoutes);
 // TV2: app.use('/api/movies',       movieRoutes);
 // TV2: app.use('/api/cinemas',      cinemaRoutes);
 // TV3: app.use('/api/bookings',     bookingRoutes);

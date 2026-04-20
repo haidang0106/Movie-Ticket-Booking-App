@@ -12,6 +12,7 @@ export const ErrorCode = {
   USER_NOT_EXISTED: { code: 1000, message: 'User not existed', statusCode: 404 },
   USER_EXISTED: { code: 1001, message: 'User existed', statusCode: 400 },
   UNAUTHENTICATED: { code: 3000, message: 'Unauthenticated', statusCode: 401 },
+  FORBIDDEN: { code: 3001, message: 'Forbidden: You do not have permission', statusCode: 403 },
 } as const;
 
 export type ErrorCodeKeys = keyof typeof ErrorCode;
