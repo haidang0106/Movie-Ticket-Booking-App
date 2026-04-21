@@ -1,0 +1,76 @@
+# =========================
+# Dependency directories
+# =========================
+node_modules/
+jspm_packages/
+.npm
+.eslintcache
+
+# =========================
+# Environment Variables
+# (QUAN TRỌNG: KHÔNG BAO GIỜ COMMIT FILE NÀY LÊN GIT)
+# =========================
+.env
+.env.development
+.env.production
+.env.test
+.env.local
+
+# =========================
+# Build & Output files
+# =========================
+# Backend (Node.js/Express)
+backend/dist/
+backend/build/
+backend/temp/
+
+# Frontend Admin
+frontend-admin/dist/
+frontend-admin/build/
+
+# Mobile App (React Native/Expo)
+mobile-app/.expo/
+mobile-app/dist/
+mobile-app/npm-debug.*
+mobile-app/*.jks
+mobile-app/*.p8
+mobile-app/*.p12
+mobile-app/*.key
+mobile-app/*.mobileprovision
+mobile-app/*.orig.*
+mobile-app/android/app/build/
+mobile-app/ios/build/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Testing
+# =========================
+coverage/
+*.lcov
+.nyc_output
+
+# =========================
+# System & IDE files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
