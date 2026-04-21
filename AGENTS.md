@@ -19,6 +19,7 @@
 - [IX. Testing & Verification](#ix-testing--verification)
 - [X. Git & Workflow](#x-git--workflow)
 - [XI. Phân công Nhiệm vụ — 5 Thành viên](#xi-phân-công-nhiệm-vụ--5-thành-viên)
+- [XII. Lịch trình Chi tiết 10 Buổi — Phân công theo Buổi](#xii-lịch-trình-chi-tiết-10-buổi--phân-công-theo-buổi)
 
 ---
 
@@ -2059,3 +2060,266 @@ QR_TTL_SECONDS=600
 | UC27 | 🆕 Quản lý phim nổi bật (Featured) | Quản trị viên | M1 | TV2 |
 | UC28 | 🆕 Thu hồi điểm khi hủy vé | Hệ thống | M5 | TV3 |
 | UC29 | 🆕 Khôi phục voucher khi hủy vé | Hệ thống | M5 | TV3 |
+
+---
+
+## XII. Lịch trình Chi tiết 10 Buổi — Phân công theo Buổi
+
+> **Quy tắc:** Mỗi buổi tất cả 5 thành viên đều phải làm việc đồng thời.  
+> Công việc mỗi người trong buổi có **sự liên kết chặt chẽ** với người khác → dễ báo cáo tiến độ với giảng viên.  
+> Kết quả đầu ra (output) của buổi trước là đầu vào (input) cho buổi sau.
+
+### Tổng quan 10 buổi
+
+| Buổi | Giai đoạn | Chủ đề chính | Mục tiêu báo cáo |
+|------|-----------|-------------|-------------------|
+| **1** | Nền tảng | Database + Project Setup | ERD hoàn chỉnh, project chạy được, kết nối DB thành công |
+| **2** | Nền tảng | Auth + Hạ tầng cốt lõi | Đăng ký/Đăng nhập hoạt động E2E (Mobile → API → DB) |
+| **3** | Core M1-M2 | Phim + Rạp + Lịch chiếu | Xem phim, tìm kiếm, lịch chiếu hoạt động E2E |
+| **4** | Core M3 | Chọn ghế Realtime + Đặt vé | Chọn ghế realtime WebSocket, tạo đơn đặt vé thành công |
+| **5** | Core M4 | Thanh toán + Payment Gateway | Thanh toán QR/Thẻ hoạt động E2E qua Payment GW |
+| **6** | Core M5-M6 | Hủy vé + Voucher | Hủy vé hoàn tiền, voucher FEFO hoạt động |
+| **7** | Core M7-M8 | Thông báo + Admin Panel | Push/Email hoạt động, Admin CRUD phim/rạp hoạt động |
+| **8** | Nâng cao | Background Jobs + Báo cáo + Nâng cao | Cronjob, báo cáo Chart.js, audit log hoạt động |
+| **9** | Hoàn thiện | Tích hợp + UI/UX Polish | Toàn bộ luồng E2E liền mạch, UI hoàn thiện |
+| **10** | Nghiệm thu | Testing + Demo + Tài liệu | Demo đầy đủ, tài liệu hoàn chỉnh, sẵn sàng nộp |
+
+---
+
+### 📅 Buổi 1 — Database + Project Setup
+
+> **Mục tiêu:** Toàn bộ nhóm có cùng môi trường dev, DB schema hoàn chỉnh, project skeleton chạy được.  
+> **Liên kết:** TV5 tạo DB → TV1 tạo backend kết nối DB → TV2 seed dữ liệu mẫu → TV3 setup Redis → TV4 setup Payment GW.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Setup project backend (`package.json`, `server.js`, Express boilerplate) ② Tạo `config/db.js` kết nối SQL Server ③ Tạo `config/redis.js` kết nối Redis ④ Tạo cấu trúc thư mục backend theo chuẩn ⑤ Tạo `.env.example` | Backend server chạy được, kết nối DB + Redis thành công | TV5 (cần DB schema), TV3 (cần Redis config) |
+| **TV2** | ① Tạo file seed dữ liệu mẫu: `cities.sql`, `cinemas.sql`, `movies.sql` ② Tạo model mẫu `movie.model.js` — query cơ bản (getAll, getById) ③ Tạo route + controller mẫu `GET /api/movies` để test kết nối ④ Tạo cấu trúc thư mục `controllers/`, `routes/`, `models/` | Seed data sẵn sàng, API test `/api/movies` trả dữ liệu | TV5 (cần migration xong), TV1 (cần DB config) |
+| **TV3** | ① Setup Socket.IO trên backend (`socket/index.js`) ② Tạo cấu trúc thư mục `jobs/`, `socket/`, `validators/` ③ Test kết nối Redis: SET/GET/DEL key ④ Viết utility `redisLock.js` (SET NX cơ bản) ⑤ Tạo file `booking.model.js` skeleton | Socket.IO chạy, Redis lock utility sẵn sàng | TV1 (cần Redis config), TV5 (cần bảng Booking) |
+| **TV4** | ① Setup project `payment-gateway/` riêng biệt (Express, port 4000) ② Tạo HMAC utility (`utils/hmac.js`) ③ Tạo middleware verify HMAC ④ Tạo route mẫu `POST /api/payment/test` ⑤ Tạo `.env.example` cho Payment GW | Payment GW server chạy port 4000, HMAC verify hoạt động | TV1 (cần chung HMAC secret), TV5 (cần bảng Payment) |
+| **TV5** | ① **Thiết kế ERD hoàn chỉnh** (vẽ diagram) ② Viết migration files theo thứ tự: `001_create_accounts.sql` → `002_create_city_cinema.sql` → `003_create_movie_show.sql` → `004_create_booking_payment.sql` → `005_create_voucher_notification.sql` → `006_create_system.sql` ③ Chạy migration tạo toàn bộ bảng ④ Tạo `README.md` hướng dẫn setup | DB schema hoàn chỉnh, tất cả bảng được tạo | Tất cả TV (mọi người cần DB schema) |
+
+**📋 Checklist báo cáo Buổi 1:**
+- [ ] ERD diagram hoàn chỉnh (TV5)
+- [ ] Backend server chạy port 3000 (TV1)
+- [ ] Payment GW chạy port 4000 (TV4)
+- [ ] Kết nối SQL Server + Redis thành công (TV1 + TV3)
+- [ ] API test `GET /api/movies` trả dữ liệu seed (TV2)
+- [ ] Socket.IO kết nối thành công (TV3)
+
+---
+
+### 📅 Buổi 2 — Auth + Hạ tầng cốt lõi
+
+> **Mục tiêu:** Hệ thống Auth hoàn chỉnh (Đăng ký OTP → Đăng nhập JWT → Phân quyền RBAC).  
+> **Liên kết:** TV1 tạo Auth API → TV2 tạo model Account/Customer → TV3 tạo validator → TV4 tạo email service → TV5 tạo Admin login.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Tạo `auth.controller.js`: register, login, verify-otp, resend-otp, logout ② Tạo `authMiddleware.js` (verify JWT, check blacklist Redis) ③ Tạo `roleMiddleware.js` (RBAC: CUSTOMER/ADMIN/SUPER_ADMIN) ④ Tạo `config/jwt.js` (Access 15p, Refresh 7d) ⑤ Tạo `asyncHandler.js`, `appError.js`, `apiResponse.js` (utils chuẩn hóa) | Auth API hoạt động, middleware JWT + RBAC sẵn sàng | TV2 (cần model Account), TV4 (cần email OTP) |
+| **TV2** | ① Tạo `account.model.js` — CRUD Account (register, findByEmail, updatePassword) ② Tạo `customer.model.js` — CRUD Customer (create, getByAccountId) ③ Tạo route files: `auth.routes.js`, `customer.routes.js` ④ Tạo `auth.validator.js` (Joi: validate email, password, OTP) ⑤ Tạo `auth.service.js` — business logic đăng ký, login | Model + Service + Route cho Auth hoàn chỉnh | TV1 (cần controller gọi service), TV5 (cần bảng Account) |
+| **TV3** | ① Tạo `booking.validator.js` skeleton ② Tạo `errorHandler.js` (global error middleware) ③ Tạo `rateLimitMiddleware.js` (100 req/15p/IP dùng Redis) ④ Viết test thủ công cho Redis lock (SET NX + TTL) ⑤ Tạo `constants/` — SEAT_TYPES, BOOKING_STATUS, PAYMENT_STATUS | Error handler + Rate limit hoạt động, constants dùng chung | TV1 (cần error handler), TV2 (cần constants) |
+| **TV4** | ① Tạo `email.service.js` (Nodemailer) — gửi OTP, xác nhận đăng ký ② Tạo `config/email.js` (SMTP config) ③ Tạo email templates: OTP verification, welcome ④ Tạo `otp.service.js` — sinh OTP 6 số, lưu Redis, verify ⑤ Tạo `notification.model.js` skeleton | Email OTP gửi thành công, OTP service hoạt động | TV1 (Auth cần gửi OTP), TV2 (cần service gửi email) |
+| **TV5** | ① Tạo seed dữ liệu: tài khoản admin test, tài khoản customer test ② Tạo `frontend-admin/` project skeleton (HTML/CSS/JS) ③ Tạo trang `login.html` cho Admin Panel ④ Tạo `js/services/api.js` (fetch wrapper, JWT header) ⑤ Tạo Admin CSS base: sidebar, layout, typography | Admin Panel skeleton + trang login, seed tài khoản test | TV1 (cần Auth API cho admin login), TV2 (cần tài khoản test) |
+
+**📋 Checklist báo cáo Buổi 2:**
+- [ ] Đăng ký → Nhận OTP email → Xác minh → Đăng nhập → Nhận JWT (TV1 + TV2 + TV4)
+- [ ] Middleware JWT chặn request không có token (TV1)
+- [ ] RBAC chặn Customer truy cập route Admin (TV1 + TV3)
+- [ ] Rate limit hoạt động (TV3)
+- [ ] Admin login page hoạt động (TV5)
+
+---
+
+### 📅 Buổi 3 — Phim + Rạp + Lịch chiếu (M1 + M2)
+
+> **Mục tiêu:** Module Phim & Rạp hoạt động E2E: xem danh sách, tìm kiếm, chi tiết, lịch chiếu.  
+> **Liên kết:** TV2 tạo API Phim/Rạp → TV1 tạo màn hình Mobile Home/Search → TV3 tạo API Shows + Seats → TV4 tạo featured cache → TV5 tạo Admin CRUD phim.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Tạo màn hình Mobile: `HomeScreen` (danh sách phim đang chiếu) ② Tạo `MovieCard` component (poster, tên, thể loại, rating) ③ Tạo `SearchScreen` (ô tìm kiếm + kết quả) ④ Tạo `movieSlice.js` (Redux Toolkit) ⑤ Setup Axios instance + interceptors (auto refresh token) ⑥ Tạo `ProfileScreen`, `EditProfileScreen` | Mobile: Home hiển thị phim, tìm kiếm hoạt động | TV2 (cần API movies), TV4 (cần API featured) |
+| **TV2** | ① Hoàn thiện `movie.controller.js` — getAll, getById, search, like/unlike ② Tạo `cinema.controller.js` — getAll, getById, getByCity ③ Tạo `movie.service.js`, `cinema.service.js` (business logic) ④ Tạo `movie.validator.js`, `cinema.validator.js` ⑤ Tạo `show.model.js`, `show.controller.js` — getShowById, getShowSeats ⑥ Tạo Admin APIs: `POST/PUT/DELETE /admin/movies` | API Phim + Rạp + Lịch chiếu hoàn chỉnh | TV1 (Mobile gọi API), TV5 (Admin gọi API) |
+| **TV3** | ① Tạo `seat.model.js` — getSeatsByHallId, getSeatsByShowId (kèm trạng thái Redis) ② Tạo `show.service.js` — getShowSeats kết hợp DB + Redis trạng thái ghế ③ Hoàn thiện Socket.IO: join room `show_{showId}`, emit seat events ④ Tạo `booking.model.js` — createBooking, getBookingsByCustomer ⑤ Tạo `product.model.js`, `product.controller.js` — danh sách combo | API Seats + trạng thái ghế realtime từ Redis | TV2 (cần show/seat data), TV1 (Mobile cần seat API) |
+| **TV4** | ① Tạo `cache.service.js` — cache featured movies vào Redis (TTL 5p) ② Tạo API `GET /movies/featured` (đọc từ cache, fallback DB) ③ Tạo `notification.controller.js` skeleton ④ Tạo `voucher.model.js` skeleton ⑤ Tạo `FeaturedCarousel` component cho Mobile (gợi ý cho TV1) | API Featured Movies (cache Redis), carousel data | TV1 (Mobile hiển thị featured), TV2 (cần movie data) |
+| **TV5** | ① Tạo trang `movies.html` — Admin CRUD phim (bảng danh sách, form thêm/sửa, xóa) ② Tạo trang `cinemas.html` — Admin quản lý cụm rạp ③ Tạo trang `shows.html` skeleton ④ Tạo `js/pages/movies.js` — gọi Admin API CRUD phim ⑤ Tạo CSS components: table, form, modal, pagination | Admin Panel: quản lý phim + rạp hoạt động | TV2 (cần Admin API movies/cinemas) |
+
+**📋 Checklist báo cáo Buổi 3:**
+- [ ] Mobile: HomeScreen hiển thị danh sách phim + featured carousel (TV1 + TV4)
+- [ ] Mobile: Tìm kiếm phim theo tên/thể loại (TV1 + TV2)
+- [ ] API: Danh sách rạp, lọc theo thành phố (TV2)
+- [ ] API: Sơ đồ ghế theo suất chiếu + trạng thái Redis (TV3)
+- [ ] Admin: CRUD phim hoạt động (TV5 + TV2)
+
+---
+
+### 📅 Buổi 4 — Chọn ghế Realtime + Đặt vé (M3)
+
+> **Mục tiêu:** Luồng đặt vé hoạt động: chọn ghế realtime → ràng buộc ghế → combo → tạo đơn → khóa ghế Redis.  
+> **Liên kết:** TV3 tạo booking API + Redis lock → TV1 tạo SeatSelection Mobile → TV2 cung cấp show/seat data → TV4 chuẩn bị payment API → TV5 tạo seat-layout admin.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Tạo `SeatSelectionScreen` — sơ đồ ghế grid, chọn/bỏ chọn ghế ② Tạo `SeatGrid` component (hiển thị trạng thái: trống/đang giữ/đã đặt) ③ Tạo `useSocket` hook — kết nối WebSocket, lắng nghe seat events ④ Tạo `ComboScreen` — chọn bắp nước ⑤ Tạo `BookingSummaryScreen` — xác nhận đơn trước thanh toán ⑥ Tạo `bookingSlice.js` (Redux) | Mobile: Luồng chọn ghế → combo → xác nhận hoạt động | TV3 (cần booking API + WebSocket), TV2 (cần seat data) |
+| **TV2** | ① Hoàn thiện `show.controller.js` — getShowSeats (merge DB + Redis status) ② Tạo Admin API `PUT /admin/halls/:id/seats` — thiết lập sơ đồ ghế ma trận ③ Tạo `show.validator.js` — validate tạo suất chiếu (không xung đột thời gian) ④ Tạo Admin API `POST/PUT/DELETE /admin/shows` hoàn chỉnh ⑤ Tạo `MovieDetailScreen` Mobile (poster, trailer, mô tả, lịch chiếu) | API Suất chiếu + Sơ đồ ghế admin hoàn chỉnh | TV3 (cần seats cho booking), TV5 (admin seat layout) |
+| **TV3** | ① **Hoàn thiện `booking.service.js`** — luồng đặt vé 6 bước đầy đủ ② Implement ràng buộc Lonely Seat (Luật 1 + Luật 2) ③ Implement Redis Distributed Lock (`SET NX EX 600`) cho khóa ghế ④ Tạo `booking.controller.js` — createBooking, getBookings, getBookingById ⑤ Broadcast WebSocket khi ghế bị hold/release ⑥ Tạo `booking.routes.js` hoàn chỉnh | API Đặt vé hoạt động, ghế lock Redis 10p, realtime WS | TV1 (Mobile gọi API), TV4 (chuẩn bị payment) |
+| **TV4** | ① Tạo `payment.model.js` — createPayment, updatePaymentStatus ② Tạo `payment.controller.js` skeleton — initPayment, webhook ③ Tạo `voucher.model.js` — getAvailableVouchers (FEFO sort) ④ Tạo `voucher.controller.js` — getVouchers, applyVoucher skeleton ⑤ Hoàn thiện Payment GW: `POST /api/payment/create-qr` (sinh QR test) | Payment + Voucher model sẵn sàng, QR sinh thử | TV3 (booking xong → chuyển payment), TV1 (Mobile UI) |
+| **TV5** | ① Tạo trang `seat-layout.html` — thiết lập sơ đồ ghế ma trận (UI grid) ② Tạo `js/pages/seat-layout.js` — drag-drop loại ghế, lối đi, phụ thu ③ Hoàn thiện trang `shows.html` — tạo/sửa/xóa suất chiếu ④ Tạo `js/pages/shows.js` — gọi Admin API shows ⑤ Tạo thêm seed: suất chiếu mẫu, ghế mẫu | Admin: quản lý sơ đồ ghế + suất chiếu | TV2 (cần Admin API seats/shows) |
+
+**📋 Checklist báo cáo Buổi 4:**
+- [ ] Mobile: Chọn ghế realtime, ghế cập nhật tức thì qua WebSocket (TV1 + TV3)
+- [ ] Ràng buộc Lonely Seat hoạt động — không cho phép bỏ trống 1 ghế giữa (TV3)
+- [ ] Redis lock ghế 10 phút thành công (TV3)
+- [ ] Mobile: Luồng chọn ghế → combo → xác nhận đơn (TV1)
+- [ ] Admin: Thiết lập sơ đồ ghế + quản lý suất chiếu (TV5 + TV2)
+
+---
+
+### 📅 Buổi 5 — Thanh toán + Payment Gateway (M4)
+
+> **Mục tiêu:** Luồng thanh toán QR + Thẻ hoạt động E2E qua Payment Gateway Service.  
+> **Liên kết:** TV4 hoàn thiện Payment GW → TV3 booking chuyển sang payment → TV1 tạo Payment Mobile → TV2 tạo tính giá vé → TV5 chuẩn bị voucher admin.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Tạo `PaymentScreen` — hiển thị QR code + countdown timer (10p) ② Tạo `PaymentResultScreen` — kết quả thanh toán (thành công/thất bại) ③ Tạo `CreditCardForm` component (nhập thông tin thẻ) ④ Tạo `TicketHistoryScreen` — danh sách vé đã đặt ⑤ Tạo `TicketDetailScreen` — chi tiết vé + QR check-in ⑥ Tạo `ticketSlice.js` (Redux) | Mobile: Thanh toán QR + Thẻ + Xem vé | TV4 (cần payment API), TV3 (cần booking data) |
+| **TV2** | ① Tạo `pricing.service.js` — tính giá vé: `BasePrice + WeekendSurcharge + FormatSurcharge + SeatSurcharge` ② Đọc phụ thu từ `SystemSettings` (không hardcode) ③ Tạo `CinemaListScreen`, `ShowtimeScreen` Mobile ④ Hoàn thiện Admin API featured: `PUT /admin/movies/:id/featured` ⑤ Tạo `like.model.js` — Like/Unlike phim | Service tính giá vé chính xác, màn hình rạp/lịch chiếu | TV3 (booking cần giá), TV4 (payment cần tổng tiền) |
+| **TV3** | ① Kết nối Booking → Payment: sau createBooking gọi initPayment ② Xử lý payment callback: SUCCESS → confirm booking + cập nhật ghế BOOKED ③ Xử lý payment FAILED → release ghế Redis + cập nhật ghế AVAILABLE ④ Tạo `cancel.service.js` skeleton — logic hủy vé ⑤ Broadcast WebSocket `seat:booked` khi thanh toán thành công | Luồng Booking → Payment → Confirm/Fail hoàn chỉnh | TV4 (cần payment callback), TV1 (Mobile cập nhật) |
+| **TV4** | ① **Hoàn thiện Payment Gateway Service**: sinh QR động (MoMo/VNPay mock) ② Implement thanh toán thẻ tín dụng (mock) ③ Tạo webhook callback: Payment GW → Main API (kèm HMAC) ④ Tạo `payment.service.js` Main API — initPayment, handleWebhook, retryPayment ⑤ Tạo `loyalty.service.js` — cộng điểm tích lũy khi thanh toán thành công ⑥ Gửi email xác nhận vé (kèm QR check-in) | Payment GW hoạt động E2E, QR/Thẻ → webhook → confirm | TV3 (cần callback update booking), TV1 (Mobile QR) |
+| **TV5** | ① Tạo trang `vouchers.html` — Admin CRUD voucher (%, VNĐ, ràng buộc) ② Tạo `js/pages/vouchers.js` — gọi Admin API vouchers ③ Tạo Admin API `POST/PUT/DELETE /admin/vouchers` ④ Tạo seed: voucher mẫu (giảm %, giảm VNĐ, free ship) ⑤ Tạo `settings.html` skeleton — cài đặt giá phụ thu | Admin: quản lý voucher + cài đặt giá | TV4 (cần voucher API), TV2 (cần settings giá) |
+
+**📋 Checklist báo cáo Buổi 5:**
+- [ ] Thanh toán QR: Main API → Payment GW → sinh QR → webhook callback → confirm (TV4 + TV3)
+- [ ] Mobile: Hiển thị QR + countdown, kết quả thanh toán (TV1)
+- [ ] Cộng điểm tích lũy khi thanh toán thành công (TV4)
+- [ ] Tính giá vé chính xác (BasePrice + phụ thu) (TV2)
+- [ ] Admin: CRUD voucher hoạt động (TV5)
+
+---
+
+### 📅 Buổi 6 — Hủy vé + Voucher Engine (M5 + M6)
+
+> **Mục tiêu:** Hủy vé với chính sách hoàn tiền + Voucher Engine FEFO hoạt động.  
+> **Liên kết:** TV3 xử lý hủy vé → TV4 hoàn tiền + khôi phục voucher → TV1 Mobile hủy vé/voucher → TV2 khôi phục ghế → TV5 admin voucher config.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Thêm nút "Hủy vé" trên `TicketDetailScreen` ② Tạo `CancelBookingModal` — xác nhận hủy, hiển thị % hoàn tiền ③ Tạo `VoucherScreen` — danh sách voucher FEFO ④ Tạo `VoucherCard` component (mã, giá trị, HSD, điều kiện) ⑤ Tạo `ApplyVoucherModal` — nhập mã / chọn từ danh sách ⑥ Cập nhật `BookingSummaryScreen` — hiển thị voucher discount | Mobile: Hủy vé + Chọn voucher hoạt động | TV3 (cần cancel API), TV4 (cần voucher API) |
+| **TV2** | ① Xử lý khôi phục ghế DB khi hủy vé: `UPDATE CinemaHallSeat SET Status = 'AVAILABLE'` ② Cập nhật `show.service.js` — refresh sơ đồ ghế sau hủy ③ Tạo `LikeMovie` feature hoàn chỉnh (Mobile + API) ④ Tạo `FeaturedCarousel` component Mobile ⑤ Hoàn thiện Admin `PUT /admin/cinemas/:id` — sửa thông tin rạp | Ghế được khôi phục đúng sau hủy, featured carousel | TV3 (cần khôi phục ghế), TV1 (Mobile carousel) |
+| **TV3** | ① **Hoàn thiện `cancel.service.js`** — hủy vé đầy đủ: check chính sách → tính % hoàn → giải phóng ghế Redis → xóa BookingSeat → cập nhật DB ② Thu hồi điểm tích lũy khi hủy vé ③ Gọi TV4 khôi phục voucher ④ Broadcast WebSocket `seat:release` ⑤ Tạo `POST /bookings/:id/cancel` hoàn chỉnh | API Hủy vé + hoàn tiền + thu hồi điểm + nhả ghế | TV4 (cần hoàn tiền + khôi phục voucher), TV2 (cần nhả ghế DB) |
+| **TV4** | ① **Hoàn thiện Voucher Engine** FEFO: sắp xếp theo HSD, kiểm tra điều kiện (min amount, category, first use) ② Tạo `POST /vouchers/apply` — validate + tính giá sau giảm ③ Tạo `GET /vouchers/suggest` — auto-suggest voucher tốt nhất ④ Khôi phục voucher khi hủy vé (`VoucherUsage` rollback) ⑤ Xử lý hoàn tiền: gọi Payment GW refund + gửi email thông báo | Voucher FEFO hoạt động, hoàn tiền + khôi phục voucher | TV3 (cần gọi khi hủy vé), TV1 (Mobile áp dụng voucher) |
+| **TV5** | ① Hoàn thiện `vouchers.html` — thêm cấu hình điều kiện voucher (minAmount, maxDiscount, category) ② Tạo trang `settings.html` — cài đặt chính sách hoàn vé (% theo thời điểm) ③ Tạo Admin API `GET/PUT /admin/settings` ④ Tạo `SystemSettings` model + seed dữ liệu mặc định ⑤ Tạo `js/pages/settings.js` | Admin: Cấu hình voucher chi tiết + cài đặt chính sách hoàn vé | TV4 (cần settings hoàn vé), TV3 (cần % hoàn từ settings) |
+
+**📋 Checklist báo cáo Buổi 6:**
+- [ ] Hủy vé: kiểm tra chính sách → tính % hoàn → nhả ghế → thu hồi điểm (TV3)
+- [ ] Voucher FEFO: danh sách sắp theo HSD, auto-suggest tốt nhất (TV4)
+- [ ] Mobile: Hủy vé + chọn/nhập voucher (TV1)
+- [ ] Khôi phục ghế + voucher sau hủy (TV2 + TV4)
+- [ ] Admin: Cài đặt chính sách hoàn vé (TV5)
+
+---
+
+### 📅 Buổi 7 — Thông báo + Admin Panel chính (M7 + M8)
+
+> **Mục tiêu:** Hệ thống thông báo (Email + Push + WebSocket) + Admin Panel CRUD chính hoạt động.  
+> **Liên kết:** TV4 tạo notification system → TV1 Mobile thông báo → TV3 trigger notification → TV2 trigger notification phim → TV5 Admin Panel hoàn thiện.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Tạo `NotificationListScreen` — danh sách thông báo (phân trang) ② Tạo `NotificationItem` component (icon, tiêu đề, nội dung, thời gian, badge unread) ③ Implement Push Notification listener (Firebase FCM) ④ Tạo `LoyaltyScreen` — xem điểm + lịch sử điểm ⑤ Tạo `ChangePasswordScreen` ⑥ Cập nhật Bottom Tab: badge số thông báo chưa đọc | Mobile: Thông báo + Loyalty + Đổi MK | TV4 (cần notification API), TV3 (cần loyalty data) |
+| **TV2** | ① Tạo trigger: gửi notification khi có phim mới (gọi TV4 notification service) ② Hoàn thiện Admin API suất chiếu: kiểm tra xung đột thời gian chặt chẽ ③ Tạo `config/firebase.js` (Firebase Admin SDK) ④ Tạo `push.service.js` — gửi push notification qua FCM ⑤ Cập nhật `movie.service.js` — khi thêm phim → trigger push "Phim mới" | Trigger notification phim mới, FCM service | TV4 (cần notification service), TV5 (admin thêm phim) |
+| **TV3** | ① Trigger notification khi đặt vé thành công (gọi TV4 notification service) ② Trigger notification khi hủy vé (gọi TV4) ③ Tạo `cancel.controller.js` — xử lý cancel request ④ Hoàn thiện luồng booking → payment → notification E2E ⑤ Chuẩn bị logic cho job `releaseExpiredSeats` skeleton | Trigger notification từ booking events | TV4 (cần notification service), TV1 (Mobile nhận push) |
+| **TV4** | ① **Hoàn thiện notification system**: `notification.service.js` — tạo notification DB + push FCM + email ② Tạo `GET /notifications` (phân trang), `PUT /notifications/:id/read`, `PUT /notifications/read-all` ③ Tạo `GET /notifications/unread-count` ④ Tạo email templates: booking confirmation (QR), cancellation, refund ⑤ Helper: format email HTML đẹp | Notification API + Email + Push FCM hoàn chỉnh | TV1 (Mobile hiển thị), TV2+TV3 (trigger gửi) |
+| **TV5** | ① Hoàn thiện `movies.html` — thêm quản lý phim nổi bật (is_featured, featured_order) ② Tạo trang `accounts.html` — quản lý tài khoản (kích hoạt/vô hiệu) ③ Tạo `js/pages/accounts.js` — gọi API `PUT /admin/accounts/:id/status` ④ Tạo Admin API `PUT /admin/accounts/:id/status` ⑤ Hoàn thiện CSS Admin: responsive sidebar, dark/light toggle | Admin: quản lý tài khoản + phim nổi bật | TV1 (cần API accounts), TV2 (cần API featured) |
+
+**📋 Checklist báo cáo Buổi 7:**
+- [ ] Push notification FCM hoạt động (đặt vé, hủy vé, phim mới) (TV4 + TV2 + TV3)
+- [ ] Email xác nhận vé kèm QR check-in (TV4)
+- [ ] Mobile: Danh sách thông báo + badge unread (TV1)
+- [ ] Admin: Quản lý tài khoản kích hoạt/vô hiệu (TV5)
+- [ ] Luồng E2E: Đặt vé → Thanh toán → Notification (TV3 + TV4 + TV1)
+
+---
+
+### 📅 Buổi 8 — Background Jobs + Báo cáo + Nâng cao
+
+> **Mục tiêu:** Cronjob tự động chạy đúng, báo cáo thống kê Chart.js, Audit Log.  
+> **Liên kết:** TV3 tạo cronjobs → TV4 job nhắc lịch + voucher tự động → TV5 báo cáo + audit log → TV2 API thống kê → TV1 điểm tích lũy nâng cao.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Tạo `MyVouchersScreen` — kho voucher cá nhân ② Hoàn thiện `LoyaltyScreen` — lịch sử cộng/trừ điểm chi tiết ③ Tạo `ForgotPasswordScreen`, `ResetPasswordScreen` ④ Implement quên mật khẩu 7 bước E2E ⑤ Tạo `config/cloudinary.js` + upload avatar ⑥ Polish UI toàn bộ screens đã tạo | Mobile: Quên MK + Avatar + Voucher cá nhân + Loyalty chi tiết | TV4 (cần voucher cá nhân API), TV2 (cần cloudinary) |
+| **TV2** | ① Tạo Admin API thống kê: `GET /admin/stats/revenue` (theo phim/suất/thời gian) ② Tạo `GET /admin/stats/tickets` (vé bán ra) ③ Tạo `GET /admin/stats/accounts` (tài khoản mới) ④ Tạo `stats.model.js`, `stats.service.js` — query aggregate ⑤ Tạo job `refreshFeaturedCache` — cập nhật cache phim nổi bật mỗi 5p | API Thống kê + Job refresh cache | TV5 (Admin cần dữ liệu thống kê), TV4 (cần cache) |
+| **TV3** | ① **Implement job `releaseExpiredSeats`** — mỗi 1p: quét PENDING > 10p → EXPIRED → xóa Redis → nhả ghế DB → broadcast WS ② Implement `cleanupExpiredBookings` — mỗi 10p ③ Retry logic: tối đa 3 lần nếu lỗi ④ Tạo job scheduler setup (`jobs/index.js`) ⑤ Test kỹ: tạo booking → chờ > 10p → verify ghế được nhả tự động | Cronjob tự động nhả ghế + dọn dẹp booking hết hạn | TV4 (cần trigger notification expired), TV2 (cần broadcast) |
+| **TV4** | ① Implement job `reminderNotification` — mỗi 5p: tìm suất chiếu trong 30p tới → push FCM + email nhắc ② Implement job `autoIssueVouchers` — phát hành voucher sinh nhật/lễ ③ Tạo `POST /payments/:bookingId/retry` — retry thanh toán thất bại ④ Xử lý rollback sự cố: conflict offline → hoàn tiền tự động + email ⑤ Tạo `GET /customer/vouchers` — kho voucher cá nhân | Jobs nhắc lịch + voucher tự động + retry payment | TV3 (cần expired trigger), TV1 (Mobile voucher cá nhân) |
+| **TV5** | ① Tạo trang `reports.html` — báo cáo doanh thu Chart.js (line, bar, pie chart) ② Tạo `js/pages/reports.js` — gọi API stats, render biểu đồ ③ Tạo trang `audit-logs.html` — nhật ký thao tác (bảng: ai/gì/khi nào/IP) ④ Tạo `auditLog.model.js`, `audit.service.js` — ghi log thao tác admin ⑤ Tạo API `GET /admin/audit-logs` (chỉ SUPER_ADMIN) | Admin: Báo cáo Chart.js + Audit Log | TV2 (cần API stats), TV1 (cần audit middleware) |
+
+**📋 Checklist báo cáo Buổi 8:**
+- [ ] Cronjob nhả ghế hết hạn hoạt động tự động (TV3)
+- [ ] Job nhắc lịch 30p trước chiếu gửi push + email (TV4)
+- [ ] Admin: Báo cáo doanh thu với Chart.js (TV5 + TV2)
+- [ ] Admin: Nhật ký thao tác (Audit Log) (TV5)
+- [ ] Quên mật khẩu + đặt lại E2E hoạt động (TV1)
+
+---
+
+### 📅 Buổi 9 — Tích hợp E2E + UI/UX Polish
+
+> **Mục tiêu:** Tất cả luồng hoạt động liền mạch E2E, UI hoàn thiện, fix bugs.  
+> **Liên kết:** Cả 5 TV cùng test chéo, fix bugs tích hợp, polish UI/UX.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① **Test E2E luồng Auth**: Đăng ký → OTP → Login → Profile → Đổi MK → Quên MK ② Fix bugs tích hợp Auth ↔ Mobile ③ Polish toàn bộ UI Mobile: animation, loading states, error handling ④ Implement pull-to-refresh, infinite scroll ⑤ Cải thiện UX: empty states, skeleton loading ⑥ Final review middleware stack | Auth E2E hoạt động mượt, UI polish | Tất cả TV (test chéo) |
+| **TV2** | ① **Test E2E luồng Phim**: Tìm kiếm → Chi tiết → Lịch chiếu → Chọn rạp ② Fix bugs tích hợp Movie/Cinema API ↔ Mobile ③ Polish Admin CRUD phim/rạp/suất chiếu — UX cải thiện ④ Kiểm tra xung đột suất chiếu edge cases ⑤ Optimize SQL queries (thêm indexes) ⑥ Chuẩn bị data demo (phim thật, poster, trailer) | Phim/Rạp E2E mượt, data demo sẵn sàng | TV1 (Mobile fix), TV5 (Admin fix) |
+| **TV3** | ① **Test E2E luồng Đặt vé**: Chọn ghế → Ràng buộc → Combo → Booking → Lock Redis ② Test concurrent booking (2 user cùng chọn ghế) ③ Test hủy vé: hoàn tiền + thu hồi điểm + khôi phục voucher + nhả ghế ④ Test cronjob: booking quá hạn → tự nhả ghế ⑤ Fix race conditions, edge cases ⑥ Stress test Redis lock | Booking E2E ổn định, concurrent safe | TV4 (payment follow-up), TV1 (Mobile fix) |
+| **TV4** | ① **Test E2E luồng Thanh toán**: Booking → Payment QR → Webhook → Confirm → Email ② Test thanh toán thẻ tín dụng E2E ③ Test retry thanh toán thất bại ④ Test rollback sự cố (conflict → hoàn tiền) ⑤ Test notification đầy đủ: đặt vé, hủy vé, nhắc lịch, phim mới ⑥ Fix bugs Payment GW ↔ Main API | Payment + Notification E2E ổn định | TV3 (cần booking data), TV1 (Mobile kết quả) |
+| **TV5** | ① **Test E2E Admin Panel**: Login → CRUD phim → Suất chiếu → Ghế → Voucher → Báo cáo ② Fix bugs Admin Panel, responsive layout ③ Polish CSS: hover effects, transitions, loading indicators ④ Test Audit Log — ghi nhận đúng thao tác ⑤ Test Settings — thay đổi giá/điểm ảnh hưởng đúng ⑥ Final review database: FK consistency, indexes | Admin Panel E2E hoạt động, DB optimized | Tất cả TV (settings ảnh hưởng toàn hệ thống) |
+
+**📋 Checklist báo cáo Buổi 9:**
+- [ ] Luồng hoàn chỉnh: Đăng ký → Tìm phim → Chọn ghế → Đặt vé → Thanh toán → Nhận vé (Full E2E)
+- [ ] Concurrent booking an toàn — không conflict ghế (TV3)
+- [ ] Cronjob nhả ghế tự động đúng giờ (TV3)
+- [ ] Admin Panel hoạt động đầy đủ 9 trang (TV5)
+- [ ] UI Mobile polish, không lỗi hiển thị (TV1)
+
+---
+
+### 📅 Buổi 10 — Testing + Demo + Tài liệu (Nghiệm thu)
+
+> **Mục tiêu:** Hoàn chỉnh tài liệu, demo sẵn sàng, fix bugs cuối cùng.  
+> **Liên kết:** Cả 5 TV cùng chuẩn bị demo, viết tài liệu, quay video.
+
+| Thành viên | Công việc chi tiết | Output | Liên kết với |
+|------------|-------------------|--------|-------------|
+| **TV1** | ① Viết tài liệu API: Auth endpoints (`docs/api/auth.md`) ② Viết tài liệu API: Customer endpoints ③ Quay video demo luồng Auth Mobile (Đăng ký → Login → Profile) ④ Fix bugs cuối cùng Auth + Middleware ⑤ Review code toàn bộ middleware + utils ⑥ Chuẩn bị slide phần Auth cho báo cáo | Tài liệu API Auth + Video demo Auth | Tất cả TV (tài liệu thống nhất) |
+| **TV2** | ① Viết tài liệu API: Movie, Cinema, Show endpoints (`docs/api/movie.md`, `cinema.md`) ② Quay video demo luồng Tìm phim → Chi tiết → Lịch chiếu (Mobile + Admin) ③ Fix bugs cuối cùng Movie/Cinema ④ Vẽ hoàn chỉnh Use Case Diagram, Sequence Diagram (M1, M2) ⑤ Chuẩn bị slide phần Phim/Rạp cho báo cáo ⑥ Chuẩn bị data demo final | Tài liệu API Movie/Cinema + Diagrams + Video demo | TV5 (admin demo), TV1 (mobile demo) |
+| **TV3** | ① Viết tài liệu API: Booking, Product endpoints (`docs/api/booking.md`) ② Quay video demo luồng Đặt vé realtime (chọn ghế → combo → booking) ③ Quay video demo concurrent booking (2 thiết bị cùng chọn ghế) ④ Quay video demo hủy vé + cronjob nhả ghế ⑤ Fix bugs cuối cùng Booking + WebSocket ⑥ Chuẩn bị slide phần Đặt vé/Ghế RT cho báo cáo | Tài liệu API Booking + Video demo Đặt vé RT | TV4 (demo payment tiếp theo), TV1 (mobile demo) |
+| **TV4** | ① Viết tài liệu API: Payment, Voucher, Notification (`docs/api/payment.md`, `voucher.md`, `notification.md`) ② Viết tài liệu Payment Gateway Service (`docs/api/payment-gateway.md`) ③ Quay video demo thanh toán QR + thẻ ④ Quay video demo notification (push + email) ⑤ Fix bugs cuối cùng Payment + Notification ⑥ Chuẩn bị slide phần Thanh toán/Voucher/Thông báo | Tài liệu API Payment/Voucher/Notification + Video demo | TV3 (demo booking trước), TV1 (mobile demo) |
+| **TV5** | ① Viết tài liệu Database: ERD mô tả, từ điển dữ liệu (`docs/database.md`) ② Quay video demo Admin Panel (toàn bộ 9 trang) ③ Hoàn thiện `README.md` — hướng dẫn cài đặt + chạy dự án ④ Tổng hợp toàn bộ video demo thành 1 clip ⑤ Fix bugs cuối cùng Admin + DB ⑥ Chuẩn bị slide phần Admin/DB/Tổng kết cho báo cáo | Tài liệu DB + README + Video demo Admin + Slide tổng | Tất cả TV (tổng hợp tài liệu) |
+
+**📋 Checklist báo cáo Buổi 10 (NGHIỆM THU):**
+- [ ] Tài liệu API đầy đủ tất cả endpoints (`docs/api/`)
+- [ ] ERD + Từ điển dữ liệu (`docs/database.md`)
+- [ ] README.md hướng dẫn cài đặt + chạy
+- [ ] Video demo đầy đủ các luồng chính
+- [ ] Slide PowerPoint báo cáo sẵn sàng
+- [ ] Code clean, không console.log thừa, comment đầy đủ
+- [ ] Git history sạch, commit message rõ ràng
+
+---
+
+### Bảng tổng hợp Công việc theo Buổi
+
+| Buổi | TV1 (Auth+User) | TV2 (Movie+Rạp) | TV3 (Booking+RT) | TV4 (Payment+Noti) | TV5 (Admin+DB) |
+|------|-----------------|-----------------|-------------------|---------------------|----------------|
+| **1** | Setup backend, DB+Redis config | Seed data, model mẫu | Setup Socket.IO, Redis lock util | Setup Payment GW, HMAC | ERD, migrations, README |
+| **2** | Auth controller, JWT middleware | Account/Customer model, routes | Error handler, rate limit | Email OTP service, Nodemailer | Admin skeleton, login page |
+| **3** | Mobile Home, Search, Profile | Movie/Cinema/Show API | Seat model, Socket.IO rooms | Featured cache, carousel | Admin CRUD phim/rạp |
+| **4** | Mobile SeatSelection, Combo | Admin API seats/shows | Booking service, Redis lock, WS | Payment/Voucher model | Admin seat-layout, shows |
+| **5** | Mobile Payment, Tickets | Pricing service, Cinema screens | Booking→Payment flow | Payment GW E2E, loyalty | Admin vouchers, settings |
+| **6** | Mobile cancel, voucher UI | Khôi phục ghế DB | Cancel service, thu hồi điểm | Voucher FEFO, hoàn tiền | Admin voucher config, settings |
+| **7** | Mobile notifications, loyalty | FCM service, trigger phim mới | Trigger noti booking | Notification system E2E | Admin accounts, featured |
+| **8** | Forgot password, avatar, polish | Stats API, refresh cache job | Cronjob release seats | Reminder job, auto voucher | Reports Chart.js, audit log |
+| **9** | E2E test Auth, UI polish | E2E test Movie, data demo | E2E test Booking, stress test | E2E test Payment, noti | E2E test Admin, DB optimize |
+| **10** | Docs API Auth, video demo | Docs API Movie, diagrams | Docs API Booking, video RT | Docs Payment/Voucher/Noti | Docs DB, README, slide tổng |
