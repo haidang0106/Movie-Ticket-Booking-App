@@ -2,10 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppException } from '../utils/exceptions/app.exception';
 import { ErrorCode } from '../utils/exceptions/error.code';
+import { jwtConfig } from '../config/jwt';
 
 export interface JwtPayload {
   accountId: number;
   accountType: string;
+  customerId: number;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -21,17 +23,13 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
     }
 
     const token = authHeader.split(' ')[1];
-    const secret = process.env.JWT_SECRET;
     
-    if (!secret) {
-      return next(new Error('JWT_SECRET is not configured'));
-    }
-
-    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
     
     req.user = {
       accountId: decoded.accountId,
-      accountType: decoded.accountType
+      accountType: decoded.accountType,
+      customerId: decoded.customerId
     };
     
     next();

@@ -11,6 +11,8 @@ export const ErrorCode = {
   UNCATEGORIZED_EXCEPTION: { code: 9999, message: 'Uncategorized error', statusCode: 500 },
   USER_NOT_EXISTED: { code: 1000, message: 'User not existed', statusCode: 404 },
   USER_EXISTED: { code: 1001, message: 'User existed', statusCode: 400 },
+  INVALID_OTP: { code: 1002, message: 'Invalid or expired OTP', statusCode: 400 },
+  INVALID_DATA: { code: 1003, message: 'Invalid data', statusCode: 400 },
   UNAUTHENTICATED: { code: 3000, message: 'Unauthenticated', statusCode: 401 },
   FORBIDDEN: { code: 3001, message: 'Forbidden: You do not have permission', statusCode: 403 },
 } as const;
