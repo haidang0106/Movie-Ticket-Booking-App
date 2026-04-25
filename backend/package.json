@@ -14,10 +14,12 @@
     "dotenv": "^16.4.0",
     "express": "^4.21.0",
     "helmet": "^7.1.0",
+    "ioredis": "^5.10.1",
     "joi": "^18.1.2",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
-    "mssql": "^10.0.0"
+    "mssql": "^10.0.0",
+    "nodemailer": "^8.0.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -27,6 +29,7 @@
     "@types/morgan": "^1.9.0",
     "@types/mssql": "^12.3.0",
     "@types/node": "^20.11.0",
+    "@types/nodemailer": "^8.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.0"
   }
