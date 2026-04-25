@@ -13,6 +13,8 @@ export const ErrorCode = {
   USER_EXISTED: { code: 1001, message: 'User existed', statusCode: 400 },
   INVALID_OTP: { code: 1002, message: 'Invalid or expired OTP', statusCode: 400 },
   INVALID_DATA: { code: 1003, message: 'Invalid data', statusCode: 400 },
+  UNVERIFIED_ACCOUNT: { code: 1004, message: 'Account is not verified', statusCode: 403 },
+  TOO_MANY_REQUESTS: { code: 4290, message: 'Too many requests. Please try again later.', statusCode: 429 },
   UNAUTHENTICATED: { code: 3000, message: 'Unauthenticated', statusCode: 401 },
   FORBIDDEN: { code: 3001, message: 'Forbidden: You do not have permission', statusCode: 403 },
 } as const;

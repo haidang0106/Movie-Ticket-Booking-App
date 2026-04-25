@@ -6,8 +6,8 @@ import { CustomerModel } from '../models/customer.model';
 import { AppException } from '../utils/exceptions/app.exception';
 import { ErrorCode } from '../utils/exceptions/error.code';
 import redisClient from '../config/redis';
-import { emailTransporter } from '../config/email';
 import { jwtConfig } from '../config/jwt';
+import { EmailService } from './email.service';
 
 export class AuthService {
   /**
@@ -24,30 +24,38 @@ export class AuthService {
       throw new AppException(ErrorCode.USER_EXISTED);
     }
 
-    // 2. Hash password chuẩn bị lưu tạm
+    // 2. Kiểm tra Throttle (Chống Spam OTP)
+    const throttleKey = `otp:throttle:${email}`;
+    const attempts = await redisClient.incr(throttleKey);
+    if (attempts === 1) {
+      await redisClient.expire(throttleKey, 900); // 15 phút
+    }
+    if (attempts > 3) {
+      throw new AppException(ErrorCode.TOO_MANY_REQUESTS);
+    }
+
+    // 3. Hash password chuẩn bị lưu tạm
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(passwordRaw, salt);
 
-    // 3. Sinh OTP gồm 6 chữ số
+    // 4. Sinh OTP gồm 6 chữ số
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 4. Lưu Cache vào Redis, cho hết hạn sau 300 giây (5 phút)
-    const payload = JSON.stringify({ email, passwordHash, otp });
-    const redisKey = `register_otp:${email}`;
+    // Băm OTP trước khi lưu
+    const otpHash = await bcrypt.hash(otp, salt);
+
+    // 5. Lưu Cache vào Redis, cho hết hạn sau 300 giây (5 phút)
+    const payload = JSON.stringify({ email, passwordHash, otpHash, accountType: 'CUSTOMER' });
+    const redisKey = `otp:register:${email}`;
     await redisClient.setex(redisKey, 300, payload);
 
-    // 5. Gửi thư điện tử chứa OTP cho khách
+    // 6. Gửi thư điện tử chứa OTP cho khách
     try {
-      await emailTransporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: email,
-        subject: '[Movie Ticket Booking] Xác thực tài khoản của bạn',
-        html: `<p>Mã xác thực đăng ký tài khoản của bạn là: <strong style="font-size:18px;">${otp}</strong>.</p><p>Mã sẽ hết hạn trong 5 phút.</p>`,
-      });
+      await EmailService.sendOtpEmail(email, otp);
     } catch (error: any) {
-      console.error('[auth.service] Lỗi gửi Email:', error.message);
       // Gửi mail thất bại thì dọn dẹp Redis để người dùng thử lại ngay lập tức
       await redisClient.del(redisKey);
+      await redisClient.decr(throttleKey); // Hoàn lại lượt thử
       throw error;
     }
 
@@ -59,7 +67,7 @@ export class AuthService {
    */
   static async verifyOtp(emailRaw: string, otp: string) {
     const email = emailRaw.trim().toLowerCase();
-    const redisKey = `register_otp:${email}`;
+    const redisKey = `otp:register:${email}`;
 
     // 1. Lên Redis lấy mã về
     const data = await redisClient.get(redisKey);
@@ -69,8 +77,9 @@ export class AuthService {
 
     const parsed = JSON.parse(data);
 
-    // 2. So khớp OTP
-    if (parsed.otp !== otp) {
+    // 2. So khớp OTP đã băm
+    const isValidOtp = await bcrypt.compare(otp, parsed.otpHash);
+    if (!isValidOtp) {
       throw new AppException(ErrorCode.INVALID_OTP);
     }
 
@@ -84,7 +93,8 @@ export class AuthService {
     const accountPayload: AccountPayload = {
       Email: parsed.email,
       PasswordHash: parsed.passwordHash,
-      AccountType: 'CUSTOMER'
+      AccountType: parsed.accountType || 'CUSTOMER',
+      IsVerified: 1
     };
     const createdAccount = await AccountModel.create(accountPayload);
     const createdCustomer = await CustomerModel.create(createdAccount.AccountID);
@@ -113,7 +123,10 @@ export class AuthService {
       throw new AppException(ErrorCode.USER_NOT_EXISTED);
     }
 
-    // TODO(Task 7): reject login when IsVerified is false after OTP flow is implemented.
+    // Reject login when IsVerified is false after OTP flow is implemented.
+    if (!account.IsVerified) {
+      throw new AppException(ErrorCode.UNVERIFIED_ACCOUNT);
+    }
 
     // 2. Chặn tài khoản bị vô hiệu hóa
     if (!account.IsActive) {
