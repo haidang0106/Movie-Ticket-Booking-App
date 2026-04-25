@@ -8,6 +8,7 @@ import { ErrorCode } from '../utils/exceptions/error.code';
 import redisClient from '../config/redis';
 import { jwtConfig } from '../config/jwt';
 import { EmailService } from './email.service';
+import { TokenUtil } from '../utils/token.util';
 
 export class AuthService {
   /**
@@ -163,5 +164,58 @@ export class AuthService {
       accessToken,
       refreshToken
     };
+  }
+
+  /**
+   * Cấp lại Access Token mới dựa vào Refresh Token
+   */
+  static async refreshToken(oldRefreshToken: string) {
+    // 1. Kiểm tra blacklist
+    const isBlacklisted = await TokenUtil.isTokenBlacklisted(oldRefreshToken, 'refresh');
+    if (isBlacklisted) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    try {
+      // 2. Xác thực Refresh Token
+      const decoded = jwt.verify(oldRefreshToken, jwtConfig.refreshSecret) as any;
+      
+      const payload = {
+        accountId: decoded.accountId,
+        accountType: decoded.accountType,
+        customerId: decoded.customerId,
+      };
+
+      // 3. Khởi tạo Access Token và Refresh Token mới
+      const newAccessToken = jwt.sign(payload, jwtConfig.secret, { expiresIn: jwtConfig.expiresIn as any });
+      const newRefreshToken = jwt.sign(payload, jwtConfig.refreshSecret, { expiresIn: jwtConfig.refreshExpiresIn as any });
+
+      // 4. Blacklist Refresh Token cũ
+      await TokenUtil.blacklistToken(oldRefreshToken, 'refresh', decoded.exp);
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken
+      };
+    } catch (error) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+  }
+
+  /**
+   * Đăng xuất: Đưa cả Access Token và Refresh Token (nếu có) vào Blacklist
+   */
+  static async logout(accessToken: string, refreshToken?: string) {
+    // 1. Decode access token để lấy exp, sau đó blacklist
+    const decodedAccess = TokenUtil.decodeToken(accessToken);
+    await TokenUtil.blacklistToken(accessToken, 'access', decodedAccess?.exp);
+
+    // 2. Nếu có refresh token thì đưa vào blacklist
+    if (refreshToken) {
+      const decodedRefresh = TokenUtil.decodeToken(refreshToken);
+      await TokenUtil.blacklistToken(refreshToken, 'refresh', decodedRefresh?.exp);
+    }
+
+    return { success: true };
   }
 }

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AppException } from '../utils/exceptions/app.exception';
 import { ErrorCode } from '../utils/exceptions/error.code';
 import { jwtConfig } from '../config/jwt';
+import { TokenUtil } from '../utils/token.util';
 
 export interface JwtPayload {
   accountId: number;
@@ -14,7 +15,7 @@ export interface AuthenticatedRequest extends Request {
   user?: JwtPayload;
 }
 
-export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -24,6 +25,12 @@ export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: N
 
     const token = authHeader.split(' ')[1];
     
+    // Check if token is blacklisted
+    const isBlacklisted = await TokenUtil.isTokenBlacklisted(token, 'access');
+    if (isBlacklisted) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
     const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
     
     req.user = {

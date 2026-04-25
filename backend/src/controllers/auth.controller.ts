@@ -47,4 +47,32 @@ export class AuthController {
 
     res.status(200).json(responseBody);
   });
+
+  /**
+   * Xử lý luồng refresh token
+   */
+  static refreshToken = asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = req.body;
+
+    const result = await AuthService.refreshToken(refreshToken);
+
+    const responseBody = ApiResponse.success(ResponseCode.SUCCESS, result);
+
+    res.status(200).json(responseBody);
+  });
+
+  /**
+   * Xử lý luồng logout
+   */
+  static logout = asyncHandler(async (req: Request, res: Response) => {
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader!.split(' ')[1]; // Đã được authMiddleware đảm bảo tồn tại
+    const { refreshToken } = req.body;
+
+    const result = await AuthService.logout(accessToken, refreshToken);
+
+    const responseBody = ApiResponse.success(ResponseCode.SUCCESS, result);
+
+    res.status(200).json(responseBody);
+  });
 }

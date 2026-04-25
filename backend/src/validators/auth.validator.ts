@@ -41,5 +41,29 @@ export const authValidator = {
       return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
     }
     next();
+  },
+
+  validateRefreshToken: (req: Request, res: Response, next: NextFunction) => {
+    const schema = Joi.object({
+      refreshToken: Joi.string().required()
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
+    }
+    next();
+  },
+
+  validateLogout: (req: Request, res: Response, next: NextFunction) => {
+    const schema = Joi.object({
+      refreshToken: Joi.string().optional()
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
+    }
+    next();
   }
 };
