@@ -218,4 +218,112 @@ export class AuthService {
 
     return { success: true };
   }
+
+  /**
+   * Quên mật khẩu: Gửi OTP xác thực
+   */
+  static async forgotPassword(emailRaw: string) {
+    const email = emailRaw.trim().toLowerCase();
+
+    // 1. Kiểm tra Throttle
+    const throttleKey = `otp:reset:throttle:${email}`;
+    const attempts = await redisClient.incr(throttleKey);
+    if (attempts === 1) {
+      await redisClient.expire(throttleKey, 900); // 15 phút
+    }
+    if (attempts > 3) {
+      throw new AppException(ErrorCode.TOO_MANY_REQUESTS);
+    }
+
+    // 2. Kiểm tra tài khoản
+    const account = await AccountModel.findByEmail(email);
+    if (!account) {
+      // Không ném lỗi để tránh dò tìm email
+      return { success: true };
+    }
+
+    // 3. Sinh và hash OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const salt = await bcrypt.genSalt(10);
+    const otpHash = await bcrypt.hash(otp, salt);
+
+    // 4. Lưu cache
+    const redisKey = `otp:reset:${email}`;
+    await redisClient.setex(redisKey, 300, otpHash);
+
+    // 5. Gửi email
+    try {
+      await EmailService.sendResetPasswordOtpEmail(email, otp);
+    } catch (error: any) {
+      await redisClient.del(redisKey);
+      await redisClient.decr(throttleKey);
+      throw error;
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Đặt lại mật khẩu (dựa trên OTP)
+   */
+  static async resetPassword(emailRaw: string, otp: string, newPasswordRaw: string) {
+    const email = emailRaw.trim().toLowerCase();
+    const redisKey = `otp:reset:${email}`;
+
+    // 1. Lấy mã băm OTP từ cache
+    const cachedOtpHash = await redisClient.get(redisKey);
+    if (!cachedOtpHash) {
+      throw new AppException(ErrorCode.INVALID_OTP);
+    }
+
+    // 2. So sánh OTP
+    const isValid = await bcrypt.compare(otp, cachedOtpHash);
+    if (!isValid) {
+      throw new AppException(ErrorCode.INVALID_OTP);
+    }
+
+    // 3. Lấy tài khoản
+    const account = await AccountModel.findByEmail(email);
+    if (!account) {
+      await redisClient.del(redisKey);
+      throw new AppException(ErrorCode.USER_NOT_EXISTED);
+    }
+
+    // 4. Hash mật khẩu mới và lưu
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPasswordRaw, salt);
+    await AccountModel.updatePasswordHash(account.AccountID, passwordHash);
+
+    // 5. Dọn dẹp cache
+    await redisClient.del(redisKey);
+
+    return { success: true };
+  }
+
+  /**
+   * Đổi mật khẩu (dành cho người dùng đã đăng nhập)
+   */
+  static async changePassword(accountId: number, oldPasswordRaw: string, newPasswordRaw: string, accessToken: string, refreshToken?: string) {
+    // 1. Lấy thông tin tài khoản
+    const account = await AccountModel.findById(accountId);
+    if (!account) {
+      throw new AppException(ErrorCode.USER_NOT_EXISTED);
+    }
+
+    // 2. Kiểm tra mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPasswordRaw, account.PasswordHash);
+    if (!isMatch) {
+      throw new AppException(ErrorCode.INVALID_OLD_PASSWORD);
+    }
+
+    // 3. Lưu mật khẩu mới
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPasswordRaw, salt);
+    await AccountModel.updatePasswordHash(accountId, passwordHash);
+
+    // 4. Đưa token hiện tại vào blacklist
+    await this.logout(accessToken, refreshToken);
+
+    return { success: true };
+  }
 }

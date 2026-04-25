@@ -21,4 +21,13 @@ router.post('/refresh-token', authValidator.validateRefreshToken, AuthController
 // Định tuyến API Logout (Yêu cầu phải có Access Token)
 router.post('/logout', authMiddleware, authValidator.validateLogout, AuthController.logout);
 
+// Định tuyến API Quên mật khẩu
+router.post('/forgot-password', authValidator.validateForgotPassword, AuthController.forgotPassword);
+
+// Định tuyến API Đặt lại mật khẩu
+router.post('/reset-password', authValidator.validateResetPassword, AuthController.resetPassword);
+
+// Định tuyến API Đổi mật khẩu (Yêu cầu phải có Access Token)
+router.post('/change-password', authMiddleware, authValidator.validateChangePassword, AuthController.changePassword);
+
 export default router;

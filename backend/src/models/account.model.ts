@@ -43,4 +43,34 @@ export class AccountModel {
     
     return result.recordset[0];
   }
+
+  /**
+   * Tìm tài khoản bằng AccountID
+   */
+  static async findById(accountId: number) {
+    const pool = getPool();
+    const result = await pool.request()
+      .input('AccountID', sql.Int, accountId)
+      .query(`
+        SELECT AccountID, Email, PasswordHash, AccountType, IsActive, IsVerified 
+        FROM Account 
+        WHERE AccountID = @AccountID
+      `);
+    return result.recordset[0];
+  }
+
+  /**
+   * Cập nhật PasswordHash cho tài khoản
+   */
+  static async updatePasswordHash(accountId: number, passwordHash: string) {
+    const pool = getPool();
+    await pool.request()
+      .input('AccountID', sql.Int, accountId)
+      .input('PasswordHash', sql.NVarChar(255), passwordHash)
+      .query(`
+        UPDATE Account 
+        SET PasswordHash = @PasswordHash
+        WHERE AccountID = @AccountID
+      `);
+  }
 }

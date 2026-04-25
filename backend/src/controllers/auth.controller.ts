@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { AuthService } from '../services/auth.service';
 import { asyncHandler } from '../utils/helpers/async.handler';
 import { ApiResponse } from '../utils/dto/api.response';
@@ -72,6 +73,50 @@ export class AuthController {
     const result = await AuthService.logout(accessToken, refreshToken);
 
     const responseBody = ApiResponse.success(ResponseCode.SUCCESS, result);
+
+    res.status(200).json(responseBody);
+  });
+
+  /**
+   * Xử lý luồng quên mật khẩu
+   */
+  static forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    await AuthService.forgotPassword(email);
+
+    // Luôn trả về thành công để tránh lộ lọt email
+    const responseBody = ApiResponse.success(ResponseCode.OTP_SENT, { success: true });
+
+    res.status(200).json(responseBody);
+  });
+
+  /**
+   * Xử lý luồng đặt lại mật khẩu bằng OTP
+   */
+  static resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email, otp, newPassword } = req.body;
+
+    await AuthService.resetPassword(email, otp, newPassword);
+
+    const responseBody = ApiResponse.success(ResponseCode.PASSWORD_RESET_SUCCESS, { success: true });
+
+    res.status(200).json(responseBody);
+  });
+
+  /**
+   * Xử lý luồng đổi mật khẩu (đã đăng nhập)
+   */
+  static changePassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const accountId = req.user!.accountId;
+    const { oldPassword, newPassword, refreshToken } = req.body;
+    
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader!.split(' ')[1];
+
+    await AuthService.changePassword(accountId, oldPassword, newPassword, accessToken, refreshToken);
+
+    const responseBody = ApiResponse.success(ResponseCode.PASSWORD_CHANGED_SUCCESS, { success: true });
 
     res.status(200).json(responseBody);
   });

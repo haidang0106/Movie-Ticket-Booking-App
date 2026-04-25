@@ -65,5 +65,45 @@ export const authValidator = {
       return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
     }
     next();
+  },
+
+  validateForgotPassword: (req: Request, res: Response, next: NextFunction) => {
+    const schema = Joi.object({
+      email: Joi.string().email().required()
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
+    }
+    next();
+  },
+
+  validateResetPassword: (req: Request, res: Response, next: NextFunction) => {
+    const schema = Joi.object({
+      email: Joi.string().email().required(),
+      otp: Joi.string().length(6).pattern(/^[0-9]+$/).required(),
+      newPassword: Joi.string().min(8).required()
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
+    }
+    next();
+  },
+
+  validateChangePassword: (req: Request, res: Response, next: NextFunction) => {
+    const schema = Joi.object({
+      oldPassword: Joi.string().required(),
+      newPassword: Joi.string().min(8).required(),
+      refreshToken: Joi.string().optional()
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return next(new AppException({ ...ErrorCode.INVALID_DATA, message: error.details[0].message }));
+    }
+    next();
   }
 };
