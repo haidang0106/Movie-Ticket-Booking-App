@@ -1,16 +1,36 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 
 import { AccountModel, AccountPayload } from '../models/account.model';
 import { CustomerModel } from '../models/customer.model';
 import { AppException } from '../utils/exceptions/app.exception';
 import { ErrorCode } from '../utils/exceptions/error.code';
+import sql from 'mssql';
+import { getPool } from '../config/database';
 import redisClient from '../config/redis';
 import { jwtConfig } from '../config/jwt';
 import { EmailService } from './email.service';
 import { TokenUtil } from '../utils/token.util';
 
 export class AuthService {
+  /**
+   * Helper sinh cặp Access Token và Refresh Token với JTI duy nhất.
+   */
+  private static generateAuthTokens(payload: { accountId: number, accountType: string, customerId: number }) {
+    const accessToken = jwt.sign(
+      { ...payload, jti: randomUUID() },
+      jwtConfig.secret,
+      { expiresIn: jwtConfig.expiresIn as any }
+    );
+    const refreshToken = jwt.sign(
+      { ...payload, jti: randomUUID() },
+      jwtConfig.refreshSecret,
+      { expiresIn: jwtConfig.refreshExpiresIn as any }
+    );
+    return { accessToken, refreshToken };
+  }
+
   /**
    * Đăng ký có sử dụng OTP
    * Thay vì tạo cứng vào DB, ta sẽ sinh OTP, băm mật khẩu và lưu tạm ở Redis.
@@ -97,17 +117,42 @@ export class AuthService {
       AccountType: parsed.accountType || 'CUSTOMER',
       IsVerified: 1
     };
-    const createdAccount = await AccountModel.create(accountPayload);
-    const createdCustomer = await CustomerModel.create(createdAccount.AccountID);
 
-    // 4. Phi tang vết tích OTP trên Memory
-    await redisClient.del(redisKey);
+    // 3. Thực hiện lưu vào DB sử dụng Transaction để đảm bảo tính toàn vẹn (Atomic)
+    // Account và Customer phải luôn đi kèm với nhau.
+    const pool = getPool();
+    const transaction = new sql.Transaction(pool);
+    let isTransactionActive = false;
 
-    return {
-      accountId: createdAccount.AccountID,
-      customerId: createdCustomer.CustomerID,
-      email: createdAccount.Email,
-    };
+    try {
+      await transaction.begin();
+      isTransactionActive = true;
+
+      const createdAccount = await AccountModel.create(accountPayload, transaction);
+      const createdCustomer = await CustomerModel.create(createdAccount.AccountID, transaction);
+
+      await transaction.commit();
+      isTransactionActive = false;
+
+      // 4. Phi tang vết tích OTP trên Memory - CHỈ khi DB đã commit thành công
+      await redisClient.del(redisKey);
+
+      return {
+        accountId: createdAccount.AccountID,
+        customerId: createdCustomer.CustomerID,
+        email: createdAccount.Email,
+      };
+    } catch (error) {
+      // Nếu có bất kỳ lỗi nào (DB unique constraint, v.v.), rollback lại toàn bộ
+      if (isTransactionActive) {
+        try {
+          await transaction.rollback();
+        } catch (rollbackError) {
+          // Ignore rollback errors if already aborted/finished
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -146,16 +191,13 @@ export class AuthService {
       throw new AppException(ErrorCode.USER_NOT_EXISTED);
     }
 
-    // 4. Khởi tạo Access Token và Refresh Token (Payload cơ bản)
-    const payload = {
+    // 4. Khởi tạo Access Token và Refresh Token (Có JTI duy nhất)
+    const { accessToken, refreshToken } = this.generateAuthTokens({
       accountId: account.AccountID,
       accountType: account.AccountType,
       customerId: customer.CustomerID,
-    };
+    });
     
-    const accessToken = jwt.sign(payload, jwtConfig.secret, { expiresIn: jwtConfig.expiresIn as any });
-    const refreshToken = jwt.sign(payload, jwtConfig.refreshSecret, { expiresIn: jwtConfig.refreshExpiresIn as any });
-
     // 5. Trả về thông tin tối thiểu (không chứa PasswordHash)
     return {
       accountId: account.AccountID,
@@ -180,15 +222,12 @@ export class AuthService {
       // 2. Xác thực Refresh Token
       const decoded = jwt.verify(oldRefreshToken, jwtConfig.refreshSecret) as any;
       
-      const payload = {
+      // 3. Khởi tạo Access Token và Refresh Token mới
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = this.generateAuthTokens({
         accountId: decoded.accountId,
         accountType: decoded.accountType,
         customerId: decoded.customerId,
-      };
-
-      // 3. Khởi tạo Access Token và Refresh Token mới
-      const newAccessToken = jwt.sign(payload, jwtConfig.secret, { expiresIn: jwtConfig.expiresIn as any });
-      const newRefreshToken = jwt.sign(payload, jwtConfig.refreshSecret, { expiresIn: jwtConfig.refreshExpiresIn as any });
+      });
 
       // 4. Blacklist Refresh Token cũ
       await TokenUtil.blacklistToken(oldRefreshToken, 'refresh', decoded.exp);

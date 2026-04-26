@@ -25,12 +25,13 @@ export class AccountModel {
   }
 
   /**
-   * Tạo tài khoản mới, trả về AccountID vừa tạo
+   * Tạo tài khoản mới, trả về AccountID vừa tạo.
+   * Hỗ trợ Transaction nếu được truyền vào.
    */
-  static async create(data: AccountPayload) {
-    const pool = getPool();
+  static async create(data: AccountPayload, connection?: sql.ConnectionPool | sql.Transaction) {
+    const conn = connection || getPool();
     const isVerified = data.IsVerified !== undefined ? data.IsVerified : 0;
-    const result = await pool.request()
+    const result = await conn.request()
       .input('Email', sql.NVarChar(100), data.Email)
       .input('PasswordHash', sql.NVarChar(255), data.PasswordHash)
       .input('AccountType', sql.NVarChar(50), data.AccountType)

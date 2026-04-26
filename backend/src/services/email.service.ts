@@ -27,6 +27,11 @@ export class EmailService {
     try {
       await emailTransporter.sendMail(mailOptions);
     } catch (error: any) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[⚠️ Email] SMTP failed or rejected by provider. Logging OTP for local testing.`);
+        console.log(`[🔑 OTP for ${email}] -> ${otp}`);
+        return;
+      }
       console.error('[email.service] Lỗi gửi Email:', error.message);
       throw error;
     }
@@ -59,6 +64,11 @@ export class EmailService {
     try {
       await emailTransporter.sendMail(mailOptions);
     } catch (error: any) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[⚠️ Email] SMTP failed or rejected by provider. Logging Reset OTP for local testing.`);
+        console.log(`[🔑 Reset OTP for ${email}] -> ${otp}`);
+        return;
+      }
       console.error('[email.service] Lỗi gửi Email Reset Password:', error.message);
       throw error;
     }

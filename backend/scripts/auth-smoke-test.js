@@ -18,15 +18,35 @@ const askQuestion = (query) => new Promise(resolve => rl.question(query, resolve
 // Tiện ích mask token
 const maskToken = (token) => {
   if (!token) return 'null';
+  if (typeof token !== 'string') return 'not-a-string';
+  if (token.length <= 20) return token;
   return `${token.substring(0, 10)}...${token.substring(token.length - 10)}`;
+};
+
+const sanitizeForLog = (data) => {
+  if (!data || typeof data !== 'object') return data;
+  const clone = JSON.parse(JSON.stringify(data));
+  if (clone.data) {
+    if (clone.data.accessToken) clone.data.accessToken = maskToken(clone.data.accessToken);
+    if (clone.data.refreshToken) clone.data.refreshToken = maskToken(clone.data.refreshToken);
+  }
+  return clone;
+};
+
+const assertValidJwt = (token, name) => {
+  if (typeof token !== 'string') {
+    throw new Error(`${name} must be a string. Got: ${typeof token}`);
+  }
+  const dots = token.split('.').length - 1;
+  if (dots !== 2) {
+    throw new Error(`${name} is invalid or masked (has ${dots} dots, expected 2). Ensure the script is not using masked tokens for API calls.`);
+  }
 };
 
 const printStep = (stepName) => console.log(`\n==================================\n[STEP] ${stepName}\n==================================`);
 const printResult = (name, result) => {
   console.log(`[RESULT: ${name}]`);
-  if (result.data?.accessToken) result.data.accessToken = maskToken(result.data.accessToken);
-  if (result.data?.refreshToken) result.data.refreshToken = maskToken(result.data.refreshToken);
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(sanitizeForLog(result), null, 2));
 };
 
 async function runTests() {
@@ -91,6 +111,14 @@ async function runTests() {
     accessToken = loginData.data.accessToken;
     refreshToken = loginData.data.refreshToken;
 
+    // Lưu lại bản gốc để đối chiếu tính duy nhất sau này
+    const loginAccessToken = accessToken;
+    const loginRefreshToken = refreshToken;
+
+    // Kiểm tra token thô (không bị mask)
+    assertValidJwt(accessToken, 'accessToken');
+    assertValidJwt(refreshToken, 'refreshToken');
+
     // 3. Profile with valid Access Token
     printStep('Get Profile');
     const profileRes = await fetchApi(`${API_BASE_URL}/api/customer/profile`, {
@@ -113,6 +141,17 @@ async function runTests() {
 
     accessToken = refreshData.data.accessToken;
     refreshToken = refreshData.data.refreshToken;
+
+    assertValidJwt(accessToken, 'New accessToken');
+    assertValidJwt(refreshToken, 'New refreshToken');
+
+    // Kiểm tra tính duy nhất (Unique JTI)
+    if (accessToken === loginAccessToken) {
+      throw new Error('Refresh Token Error: New accessToken is identical to the old one! JTI might be missing.');
+    }
+    if (refreshToken === loginRefreshToken) {
+      throw new Error('Refresh Token Error: New refreshToken is identical to the old one! JTI might be missing.');
+    }
 
     // 5. Logout
     printStep('Logout');
