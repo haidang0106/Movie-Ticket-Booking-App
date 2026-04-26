@@ -1,0 +1,169 @@
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { COLORS } from '../../constants/colors';
+import { authService } from '../../services/authService';
+import { customerService } from '../../services/customerService';
+import { AuthContext } from '../../context/AuthContext';
+import { LanguageContext } from '../../context/LanguageContext';
+
+export default function LoginScreen() {
+  const navigation = useNavigation<any>();
+  const { setSession } = useContext(AuthContext);
+  const { t } = useContext(LanguageContext);
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedEmail || !password) {
+      setError(t('login.errorFields'));
+      return;
+    }
+    setError('');
+    setIsLoading(true);
+    try {
+      const res = await authService.login(trimmedEmail, password);
+      if (__DEV__) {
+        console.log('[Login Response]', res);
+      }
+
+      if (res && (res.success || (res.code >= 1000 && res.code < 3000)) && res.data) {
+        const { accessToken, refreshToken } = res.data;
+        try {
+            await setSession(accessToken, refreshToken, null);
+        } catch (e) {
+            console.error('Failed to set session', e);
+        }
+      } else {
+        setError(res?.message || t('login.errorInvalid'));
+      }
+    } catch (err: any) {
+      if (err.response) {
+        setError(err.response.data?.message || t('login.errorInvalid'));
+      } else if (err.request) {
+        setError(t('common.serverConnectionError'));
+      } else {
+        setError(t('login.errorInvalid'));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialLogin = () => {
+    Alert.alert('', t('social.notAvailable'));
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.backButton}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('login.title')}</Text>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <View style={styles.formContainer}>
+            <Text style={styles.welcomeText}>{t('login.welcomeBack')}</Text>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('login.email')}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('login.email')}
+                placeholderTextColor={COLORS.muted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('login.password')}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={t('login.password')}
+                placeholderTextColor={COLORS.muted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+              <Text style={styles.forgotPassword}>{t('login.forgotPassword')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.primaryButton, isLoading && styles.disabledButton]} 
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.primaryButtonText}>{isLoading ? t('common.loading') : t('login.submit')}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('login.orContinueWith')}</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialContainer}>
+              <TouchableOpacity style={styles.socialButton} onPress={handleSocialLogin}>
+                <Text style={styles.socialButtonText}>{t('common.facebook')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialButton} onPress={handleSocialLogin}>
+                <Text style={styles.socialButtonText}>{t('common.google')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.footer}>
+             <Text style={styles.footerText}>{t('login.noAccount')}</Text>
+             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.footerLink}>{t('login.signUp')}</Text>
+             </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: { flexGrow: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
+  backButton: { color: COLORS.text, fontSize: 24 },
+  headerTitle: { color: COLORS.text, fontSize: 20, fontWeight: 'bold' },
+  formContainer: { paddingHorizontal: 24, flex: 1 },
+  welcomeText: { color: COLORS.text, fontSize: 28, fontWeight: 'bold', marginBottom: 32 },
+  inputGroup: { marginBottom: 20 },
+  label: { color: COLORS.text, fontSize: 14, marginBottom: 8 },
+  input: { backgroundColor: COLORS.card, borderRadius: 12, padding: 16, color: COLORS.text, fontSize: 16 },
+  forgotPassword: { color: COLORS.primary, alignSelf: 'flex-end', marginBottom: 32, fontSize: 14 },
+  primaryButton: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginBottom: 32 },
+  disabledButton: { opacity: 0.7 },
+  primaryButtonText: { color: COLORS.background, fontSize: 16, fontWeight: 'bold' },
+  errorText: { color: COLORS.error, marginBottom: 16 },
+  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { color: COLORS.muted, paddingHorizontal: 16 },
+  socialContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  socialButton: { flex: 0.48, backgroundColor: COLORS.card, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
+  socialButtonText: { color: COLORS.text, fontSize: 14, fontWeight: '500' },
+  footer: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 24 },
+  footerText: { color: COLORS.muted, fontSize: 14 },
+  footerLink: { color: COLORS.primary, fontSize: 14, fontWeight: 'bold' },
+});
