@@ -15,6 +15,7 @@ export const ErrorCode = {
   INVALID_DATA: { code: 1003, message: 'Invalid data', statusCode: 400 },
   UNVERIFIED_ACCOUNT: { code: 1004, message: 'Account is not verified', statusCode: 403 },
   INVALID_OLD_PASSWORD: { code: 1005, message: 'Invalid old password', statusCode: 400 },
+  PHONE_NUMBER_EXISTED: { code: 1006, message: 'Phone number already in use', statusCode: 400 },
   TOO_MANY_REQUESTS: { code: 4290, message: 'Too many requests. Please try again later.', statusCode: 429 },
   UNAUTHENTICATED: { code: 3000, message: 'Unauthenticated', statusCode: 401 },
   FORBIDDEN: { code: 3001, message: 'Forbidden: You do not have permission', statusCode: 403 },

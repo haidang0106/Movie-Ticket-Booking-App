@@ -14,10 +14,11 @@ export class CustomerModel {
   /**
    * Tạo bản ghi Customer căn bản liên kết với AccountID.
    * Thường được gọi ngay sau khi tạo Account dành cho user mới (Register).
+   * Hỗ trợ Transaction nếu được truyền vào.
    */
-  static async create(accountId: number) {
-    const pool = getPool();
-    const result = await pool.request()
+  static async create(accountId: number, connection?: sql.ConnectionPool | sql.Transaction) {
+    const conn = connection || getPool();
+    const result = await conn.request()
       .input('AccountID', sql.Int, accountId)
       .query(`
         INSERT INTO Customer (AccountID, LoyaltyPoints)
@@ -70,9 +71,17 @@ export class CustomerModel {
       .input('FullName', sql.NVarChar(100), data.FullName)
       .input('PhoneNumber', sql.NVarChar(20), data.PhoneNumber)
       .input('Gender', sql.NVarChar(20), data.Gender)
-      .input('DateOfBirth', sql.Date, data.DateOfBirth ? new Date(data.DateOfBirth) : null)
+      .input('DateOfBirth', sql.Date, data.DateOfBirth)
       .input('AvatarUrl', sql.NVarChar(sql.MAX), data.AvatarUrl)
       .query(`
+        SET QUOTED_IDENTIFIER ON;
+        SET ANSI_NULLS ON;
+        SET ANSI_PADDING ON;
+        SET ANSI_WARNINGS ON;
+        SET CONCAT_NULL_YIELDS_NULL ON;
+        SET ARITHABORT ON;
+        SET NUMERIC_ROUNDABORT OFF;
+
         UPDATE Customer 
         SET 
           FullName = COALESCE(@FullName, FullName),

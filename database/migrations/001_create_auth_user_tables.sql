@@ -1,6 +1,7 @@
 -- 001_create_auth_user_tables.sql
 -- Description: Khởi tạo các bảng cấu trúc cơ bản cho Authentication và User 
-
+SET QUOTED_IDENTIFIER ON;
+GO
 -- 1. Bảng Account: Bảng dùng chung cho xác thực và phân quyền
 CREATE TABLE Account (
     AccountID INT IDENTITY(1,1) PRIMARY KEY,
@@ -18,7 +19,7 @@ CREATE TABLE Customer (
     CustomerID INT IDENTITY(1,1) PRIMARY KEY,
     AccountID INT UNIQUE NOT NULL FOREIGN KEY REFERENCES Account(AccountID),
     FullName NVARCHAR(150),
-    PhoneNumber NVARCHAR(20) UNIQUE NULL,
+    PhoneNumber NVARCHAR(20) NULL,
     Gender NVARCHAR(10) CHECK (Gender IN ('MALE', 'FEMALE', 'OTHER')),
     DateOfBirth DATE NULL,
     AvatarUrl NVARCHAR(255) NULL,
@@ -26,6 +27,9 @@ CREATE TABLE Customer (
     CreatedAt DATETIME DEFAULT GETDATE(),
     UpdatedAt DATETIME DEFAULT GETDATE()
 );
+
+-- Unique index cho PhoneNumber (cho phép nhiều NULL)
+CREATE UNIQUE INDEX UX_Customer_PhoneNumber_NotNull ON Customer(PhoneNumber) WHERE PhoneNumber IS NOT NULL;
 
 -- 3. Bảng LoyaltyPointHistory: Quản lý tính minh bạch việc cộng/trừ điểm tích luỹ
 CREATE TABLE LoyaltyPointHistory (
@@ -39,17 +43,27 @@ CREATE TABLE LoyaltyPointHistory (
 
 -- Trigger Tự động cập nhật trường UpdatedAt cho Account
 GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
 CREATE TRIGGER trg_UpdateAccount_UpdatedAt
 ON Account
 AFTER UPDATE
 AS
 BEGIN
    SET NOCOUNT ON;
-   UPDATE Account SET UpdatedAt = GETDATE()
-   FROM Inserted i WHERE Account.AccountID = i.AccountID;
+   IF NOT UPDATE(UpdatedAt)
+   BEGIN
+       UPDATE Account SET UpdatedAt = GETDATE()
+       FROM Account a
+       INNER JOIN Inserted i ON a.AccountID = i.AccountID;
+   END
 END;
 
 -- Trigger Tự động cập nhật trường UpdatedAt cho Customer
+GO
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
 GO
 CREATE TRIGGER trg_UpdateCustomer_UpdatedAt
 ON Customer
@@ -57,6 +71,10 @@ AFTER UPDATE
 AS
 BEGIN
    SET NOCOUNT ON;
-   UPDATE Customer SET UpdatedAt = GETDATE()
-   FROM Inserted i WHERE Customer.CustomerID = i.CustomerID;
+   IF NOT UPDATE(UpdatedAt)
+   BEGIN
+       UPDATE Customer SET UpdatedAt = GETDATE()
+       FROM Customer c
+       INNER JOIN Inserted i ON c.CustomerID = i.CustomerID;
+   END
 END;

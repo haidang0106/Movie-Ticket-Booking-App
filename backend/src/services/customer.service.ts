@@ -22,12 +22,73 @@ export class CustomerService {
    * Lớp service xử lý để có thể kiểm tra lỗi nếu tài khoản không tồn tại.
    */
   static async updateProfile(accountId: number, data: UpdateCustomerPayload) {
-    const updatedProfile = await CustomerModel.updateProfileByAccountId(accountId, data);
-    
-    if (!updatedProfile) {
-      throw new AppException(ErrorCode.USER_NOT_EXISTED);
+    try {
+      // 1. Normalize and validate Gender
+      if (data.Gender) {
+        const genderUpper = data.Gender.toUpperCase();
+        if (genderUpper === 'NAM' || genderUpper === 'MALE') {
+          data.Gender = 'MALE';
+        } else if (genderUpper === 'NỮ' || genderUpper === 'FEMALE') {
+          data.Gender = 'FEMALE';
+        } else if (genderUpper === 'KHÁC' || genderUpper === 'OTHER') {
+          data.Gender = 'OTHER';
+        } else {
+          throw new AppException(ErrorCode.INVALID_DATA);
+        }
+      }
+
+      // 2. Trim and validate PhoneNumber
+      if (data.PhoneNumber) {
+        data.PhoneNumber = data.PhoneNumber.trim();
+        const vnf_regex = /^(0|\+84)(3|5|7|8|9|1[2|6|8|9])([0-9]{8})$/;
+        if (!vnf_regex.test(data.PhoneNumber)) {
+            // throw new AppException(ErrorCode.INVALID_DATA); 
+            // Let's be less strict on backend if mobile already validated, 
+            // but at least check length
+            if (data.PhoneNumber.length < 8 || data.PhoneNumber.length > 15) {
+                throw new AppException(ErrorCode.INVALID_DATA);
+            }
+        }
+      }
+
+      // 3. Normalize DateOfBirth to Date object
+      if (data.DateOfBirth) {
+          if (typeof data.DateOfBirth === 'string') {
+              const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+              if (!dateRegex.test(data.DateOfBirth)) {
+                  throw new AppException(ErrorCode.INVALID_DATA);
+              }
+              const d = new Date(data.DateOfBirth);
+              if (isNaN(d.getTime())) {
+                  throw new AppException(ErrorCode.INVALID_DATA);
+              }
+              data.DateOfBirth = d;
+          }
+      }
+
+      const updatedProfile = await CustomerModel.updateProfileByAccountId(accountId, data);
+      
+      if (!updatedProfile) {
+        throw new AppException(ErrorCode.USER_NOT_EXISTED);
+      }
+      
+      return updatedProfile;
+    } catch (error: any) {
+      if (error instanceof AppException) throw error;
+
+      if (error.message && (error.message.includes('UX_Customer_PhoneNumber') || error.message.includes('UNIQUE KEY'))) {
+        throw new AppException(ErrorCode.PHONE_NUMBER_EXISTED);
+      }
+      
+      if (error.message && error.message.includes('CK__Customer__Gender')) {
+        throw new AppException(ErrorCode.INVALID_DATA);
+      }
+      
+      if (error.number === 1934) {
+        console.error('[⚠️ SQL 1934] Lỗi thiết lập SET options (QUOTED_IDENTIFIER, ANSI_NULLS, etc.) khi làm việc với Filtered Index hoặc Trigger.');
+      }
+
+      throw error;
     }
-    
-    return updatedProfile;
   }
 }

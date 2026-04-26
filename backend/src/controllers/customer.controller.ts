@@ -34,7 +34,12 @@ export class CustomerController {
     const accountId = req.user!.accountId;
     
     // Rút trích cụ thể các field mà hệ thống cho phép user tự ý sửa chữa
-    const { FullName, PhoneNumber, Gender, DateOfBirth, AvatarUrl } = req.body;
+    // Hỗ trợ cả PascalCase (từ mobile) và camelCase (chuẩn API)
+    const FullName = req.body.FullName || req.body.fullName;
+    const PhoneNumber = req.body.PhoneNumber || req.body.phoneNumber;
+    const Gender = req.body.Gender || req.body.gender;
+    const DateOfBirth = req.body.DateOfBirth || req.body.dateOfBirth;
+    const AvatarUrl = req.body.AvatarUrl || req.body.avatarUrl;
     
     const payload = {
       FullName,
