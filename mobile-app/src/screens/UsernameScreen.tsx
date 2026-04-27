@@ -13,7 +13,11 @@ export default function UsernameScreen({ navigation }: any) {
       Alert.alert('Lỗi', 'Tên người dùng phải có ít nhất 2 ký tự');
       return;
     }
-    Alert.alert('Thành công!', `Chào mừng ${username}! Tính năng demo kết thúc tại đây.`);
+    // Navigate to Home screen after successful login/signup
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
   };
 
   // Custom number pad keys (same layout as design)
