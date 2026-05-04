@@ -2,22 +2,25 @@
 
 ## Development Setup
 
-### API Configuration
-For local development, the API base URL is configured in `src/config/api.ts`.
+### Dynamic API Configuration
+For local development, the API base URL is resolved dynamically in `src/config/api.ts`. 
 
-#### Real phone / Expo Go
-You must use your computer's LAN IP address.
-Example: `http://192.168.0.101:3000/api`
+Supported modes:
 
-#### Android Emulator
-Use: `http://10.0.2.2:3000/api`
+#### 1. Real phone / Expo Go
+- Usually resolved automatically using the Metro host IP from `Constants.expoConfig?.hostUri`.
+- Ensure your backend is running on the same computer and port 3000.
+- Ensure your phone and laptop are connected to the same Wi-Fi network.
+- Test connection from your phone browser: `http://<YOUR_COMPUTER_IP>:3000/api/health`
 
-#### iOS Simulator
-Use: `http://localhost:3000/api`
+#### 2. Android Emulator
+- Automatically resolved via fallback to `http://10.0.2.2:3000/api`.
 
-### Testing Connection
-You can verify if your phone can reach the backend by opening this URL in your phone's browser:
-`http://<YOUR_COMPUTER_IP>:3000/api/health`
+#### 3. Manual Override via Environment Variables
+- If you need to manually specify a URL, you can define `EXPO_PUBLIC_API_URL` in your environment or a local `.env` file (do not commit `.env`).
+- Example:
+  `EXPO_PUBLIC_API_URL=http://192.168.0.101:3000/api`
+- Restart Expo with: `npx expo start -c`
 
 ## Scripts
 - `npm run start`: Start Expo dev server
