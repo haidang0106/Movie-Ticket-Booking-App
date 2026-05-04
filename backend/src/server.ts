@@ -8,6 +8,7 @@ import { connectDB } from './config/database';
 import { globalExceptionHandler } from './utils/exceptions/global.exception.handler';
 import authRoutes from './routes/auth.routes';
 import customerRoutes from './routes/customer.routes';
+import adminRoutes from './routes/admin.routes';
 
 // Load biến môi trường từ file .env
 dotenv.config();
@@ -39,13 +40,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 
 app.use('/api/auth',         authRoutes);
 app.use('/api/customer',     customerRoutes);
-// TV2: app.use('/api/movies',       movieRoutes);
-// TV2: app.use('/api/cinemas',      cinemaRoutes);
-// TV3: app.use('/api/bookings',     bookingRoutes);
-// TV4: app.use('/api/payments',     paymentRoutes);
-// TV4: app.use('/api/vouchers',     voucherRoutes);
-// TV4: app.use('/api/notifications', notificationRoutes);
-// TV5: app.use('/api/admin',        adminRoutes);
+app.use('/api/admin',        adminRoutes);
 
 // ==========================================
 // 3. XỬ LÝ ROUTE KHÔNG TỒN TẠI (404)
@@ -70,6 +65,10 @@ const startServer = async () => {
   try {
     // Kết nối SQL Server trước khi mở cổng lắng nghe
     await connectDB();
+    
+    // Seed tài khoản admin mặc định
+    const { seedAdmin } = require('./utils/seed');
+    await seedAdmin();
 
     app.listen(PORT, () => {
       console.log(`[🚀 Server]  Đang chạy tại http://localhost:${PORT}`);
