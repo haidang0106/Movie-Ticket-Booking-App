@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
@@ -11,21 +11,18 @@ export default function ResetPasswordScreen() {
   const email = route.params?.email || '';
   const { t } = useContext(LanguageContext);
   
-  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!email) {
+      navigation.navigate('Login');
+    }
+  }, [email, navigation]);
+
   const handleResetPassword = async () => {
-    if (!otp) {
-      setError(t('validation.otpRequired'));
-      return;
-    }
-    if (otp.length !== 6) {
-      setError(t('validation.otpSixDigits'));
-      return;
-    }
     if (!newPassword) {
       setError(t('validation.newPasswordRequired'));
       return;
@@ -46,7 +43,7 @@ export default function ResetPasswordScreen() {
     setError('');
     setIsLoading(true);
     try {
-      const res = await authService.resetPassword(email, otp, newPassword);
+      const res = await authService.resetPassword(email, newPassword);
       if (__DEV__) {
         console.log('[Reset Password Response]', res);
       }
@@ -80,19 +77,6 @@ export default function ResetPasswordScreen() {
             <Text style={styles.title}>{t('reset.title')}</Text>
             <Text style={styles.subtitle}>{t('reset.subtitle')}</Text>
             <Text style={styles.emailText}>{email}</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('reset.otpLabel')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="000000"
-                placeholderTextColor={COLORS.muted}
-                value={otp}
-                onChangeText={setOtp}
-                keyboardType="number-pad"
-                maxLength={6}
-              />
-            </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('reset.newPassword')}</Text>

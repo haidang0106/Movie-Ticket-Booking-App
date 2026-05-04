@@ -11,6 +11,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import VerifyOtpScreen from '../screens/auth/VerifyOtpScreen';
 import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import VerifyResetOtpScreen from '../screens/auth/VerifyResetOtpScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 
@@ -26,6 +27,7 @@ function AuthNavigator() {
       <AuthStack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
       <AuthStack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="VerifyResetOtp" component={VerifyResetOtpScreen} />
       <AuthStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </AuthStack.Navigator>
   );

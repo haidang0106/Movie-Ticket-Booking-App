@@ -24,6 +24,9 @@ router.post('/logout', authMiddleware, authValidator.validateLogout, AuthControl
 // Định tuyến API Quên mật khẩu
 router.post('/forgot-password', authValidator.validateForgotPassword, AuthController.forgotPassword);
 
+// Định tuyến API Xác thực mã OTP đặt lại mật khẩu
+router.post('/verify-reset-otp', authValidator.validateVerifyResetOtp, AuthController.verifyResetOtp);
+
 // Định tuyến API Đặt lại mật khẩu
 router.post('/reset-password', authValidator.validateResetPassword, AuthController.resetPassword);
 

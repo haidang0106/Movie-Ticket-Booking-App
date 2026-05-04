@@ -39,7 +39,7 @@ export default function ForgotPasswordScreen() {
       
       // Neutral success message and navigate
       Alert.alert('', t('forgot.neutralSuccess'), [
-        { text: 'OK', onPress: () => navigation.navigate('ResetPassword', { email: trimmedEmail }) }
+        { text: 'OK', onPress: () => navigation.navigate('VerifyResetOtp', { email: trimmedEmail }) }
       ]);
     } catch (err: any) {
       if (__DEV__) {

@@ -92,12 +92,25 @@ export class AuthController {
   });
 
   /**
+   * Xử lý luồng xác thực mã OTP đặt lại mật khẩu
+   */
+  static verifyResetOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { email, otp } = req.body;
+
+    await AuthService.verifyResetOtp(email, otp);
+
+    const responseBody = ApiResponse.success(ResponseCode.SUCCESS, { success: true });
+
+    res.status(200).json(responseBody);
+  });
+
+  /**
    * Xử lý luồng đặt lại mật khẩu bằng OTP
    */
   static resetPassword = asyncHandler(async (req: Request, res: Response) => {
-    const { email, otp, newPassword } = req.body;
+    const { email, newPassword } = req.body;
 
-    await AuthService.resetPassword(email, otp, newPassword);
+    await AuthService.resetPassword(email, newPassword);
 
     const responseBody = ApiResponse.success(ResponseCode.PASSWORD_RESET_SUCCESS, { success: true });
 

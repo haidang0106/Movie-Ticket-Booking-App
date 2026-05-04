@@ -303,9 +303,9 @@ export class AuthService {
   }
 
   /**
-   * Đặt lại mật khẩu (dựa trên OTP)
+   * Xác thực mã OTP đặt lại mật khẩu
    */
-  static async resetPassword(emailRaw: string, otp: string, newPasswordRaw: string) {
+  static async verifyResetOtp(emailRaw: string, otp: string) {
     const email = emailRaw.trim().toLowerCase();
     const redisKey = `otp:reset:${email}`;
 
@@ -321,20 +321,42 @@ export class AuthService {
       throw new AppException(ErrorCode.INVALID_OTP);
     }
 
-    // 3. Lấy tài khoản
+    // 3. Đúng rồi! Lưu phiên xác thực thành công vào Redis trong 5 phút
+    const verifiedKey = `otp:reset:verified:${email}`;
+    await redisClient.setex(verifiedKey, 300, 'true');
+
+    return { success: true };
+  }
+
+  /**
+   * Đặt lại mật khẩu (sau khi đã xác thực OTP)
+   */
+  static async resetPassword(emailRaw: string, newPasswordRaw: string) {
+    const email = emailRaw.trim().toLowerCase();
+    const verifiedKey = `otp:reset:verified:${email}`;
+
+    // 1. Kiểm tra phiên xác thực
+    const isVerified = await redisClient.get(verifiedKey);
+    if (!isVerified) {
+      throw new AppException(ErrorCode.RESET_OTP_NOT_VERIFIED);
+    }
+
+    // 2. Lấy tài khoản
     const account = await AccountModel.findByEmail(email);
     if (!account) {
-      await redisClient.del(redisKey);
+      await redisClient.del(verifiedKey);
+      await redisClient.del(`otp:reset:${email}`);
       throw new AppException(ErrorCode.USER_NOT_EXISTED);
     }
 
-    // 4. Hash mật khẩu mới và lưu
+    // 3. Hash mật khẩu mới và lưu
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPasswordRaw, salt);
     await AccountModel.updatePasswordHash(account.AccountID, passwordHash);
 
-    // 5. Dọn dẹp cache
-    await redisClient.del(redisKey);
+    // 4. Dọn dẹp cache
+    await redisClient.del(verifiedKey);
+    await redisClient.del(`otp:reset:${email}`);
 
     return { success: true };
   }
