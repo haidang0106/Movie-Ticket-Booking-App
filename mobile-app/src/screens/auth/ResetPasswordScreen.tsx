@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
@@ -64,40 +65,49 @@ export default function ResetPasswordScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonArea}>
               <Text style={styles.backButton}>←</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>{t('reset.title')}</Text>
-            <View style={{ width: 24 }} />
           </View>
 
           <View style={styles.content}>
-            <Text style={styles.title}>{t('reset.title')}</Text>
-            <Text style={styles.subtitle}>{t('reset.subtitle')}</Text>
-            <Text style={styles.emailText}>{email}</Text>
+            <Text style={styles.stepText}>{t('newPassword.step')}</Text>
+            <Text style={styles.title}>{t('newPassword.title')}</Text>
+            <Text style={styles.subtitle}>{t('newPassword.subtitle')}</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('reset.newPassword')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('reset.newPassword')}
-                placeholderTextColor={COLORS.muted}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
-              />
+            <View style={styles.emailChip}>
+              <Text style={styles.emailText}>{email}</Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('reset.confirmNewPassword')}</Text>
+              <Text style={styles.label}>{t('newPassword.newPassword')}</Text>
               <TextInput
-                style={styles.input}
-                placeholder={t('reset.confirmNewPassword')}
+                style={[styles.input, error && !newPassword ? styles.inputError : null]}
+                placeholder={t('newPassword.newPassword')}
+                placeholderTextColor={COLORS.muted}
+                value={newPassword}
+                onChangeText={(text) => {
+                  setNewPassword(text);
+                  if (error) setError('');
+                }}
+                secureTextEntry
+              />
+              <Text style={styles.hintText}>{t('newPassword.passwordHint')}</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('newPassword.confirmPassword')}</Text>
+              <TextInput
+                style={[styles.input, error && (newPassword !== confirmPassword || !confirmPassword) ? styles.inputError : null]}
+                placeholder={t('newPassword.confirmPassword')}
                 placeholderTextColor={COLORS.muted}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  if (error) setError('');
+                }}
                 secureTextEntry
               />
             </View>
@@ -109,7 +119,9 @@ export default function ResetPasswordScreen() {
               onPress={handleResetPassword}
               disabled={isLoading}
             >
-              <Text style={styles.primaryButtonText}>{isLoading ? t('common.loading') : t('reset.updatePassword')}</Text>
+              <Text style={styles.primaryButtonText}>
+                {isLoading ? t('common.processing') : t('newPassword.update')}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -119,20 +131,24 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: COLORS.background || '#000000' },
   scrollContent: { flexGrow: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
-  backButton: { color: COLORS.text, fontSize: 24 },
-  headerTitle: { color: COLORS.text, fontSize: 20, fontWeight: 'bold' },
-  content: { paddingHorizontal: 24, flex: 1, paddingTop: 20 },
-  title: { color: COLORS.text, fontSize: 28, fontWeight: 'bold', marginBottom: 12 },
-  subtitle: { color: COLORS.muted, fontSize: 16, marginBottom: 8, lineHeight: 24 },
-  emailText: { color: COLORS.primary, fontSize: 16, fontWeight: 'bold', marginBottom: 32 },
-  inputGroup: { marginBottom: 20 },
-  label: { color: COLORS.text, fontSize: 14, marginBottom: 8 },
-  input: { backgroundColor: COLORS.card, borderRadius: 12, padding: 16, color: COLORS.text, fontSize: 16 },
-  errorText: { color: COLORS.error, marginBottom: 16 },
-  primaryButton: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginTop: 12, marginBottom: 32 },
-  disabledButton: { opacity: 0.7 },
-  primaryButtonText: { color: COLORS.background, fontSize: 16, fontWeight: 'bold' },
+  header: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
+  backButtonArea: { width: 44, height: 44, justifyContent: 'center' },
+  backButton: { color: '#FFFFFF', fontSize: 28 },
+  content: { paddingHorizontal: 24, flex: 1, paddingTop: 12 },
+  stepText: { color: COLORS.primary || '#FCC434', fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+  title: { color: '#FFFFFF', fontSize: 32, fontWeight: 'bold', marginBottom: 12 },
+  subtitle: { color: '#B3B3B3', fontSize: 15, marginBottom: 20, lineHeight: 22 },
+  emailChip: { backgroundColor: '#1C1C1C', alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, marginBottom: 32 },
+  emailText: { color: COLORS.primary || '#FCC434', fontSize: 14, fontWeight: '600' },
+  inputGroup: { marginBottom: 24 },
+  label: { color: '#FFFFFF', fontSize: 14, marginBottom: 10, fontWeight: '500' },
+  input: { backgroundColor: '#1C1C1C', borderRadius: 16, padding: 18, color: '#FFFFFF', fontSize: 16 },
+  inputError: { borderWidth: 1, borderColor: COLORS.error || '#FF4D4D' },
+  hintText: { color: '#888888', fontSize: 13, marginTop: 6 },
+  errorText: { color: COLORS.error || '#FF4D4D', marginBottom: 16, fontSize: 13 },
+  primaryButton: { backgroundColor: COLORS.primary || '#FCC434', paddingVertical: 18, borderRadius: 30, alignItems: 'center', marginTop: 8, marginBottom: 32 },
+  disabledButton: { opacity: 0.6 },
+  primaryButtonText: { color: '#000000', fontSize: 16, fontWeight: 'bold' },
 });
