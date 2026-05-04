@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-na
 import { COLORS } from '../../constants/colors';
 import { AuthContext } from '../../context/AuthContext';
 import { LanguageContext } from '../../context/LanguageContext';
+import BottomNavBar from '../../components/common/BottomNavBar';
 
 export default function HomeScreen() {
   const { user, logout } = useContext(AuthContext);
@@ -19,6 +20,7 @@ export default function HomeScreen() {
           <Text style={styles.logoutButtonText}>{t('home.logout')}</Text>
         </TouchableOpacity>
       </View>
+      <BottomNavBar />
     </SafeAreaView>
   );
 }

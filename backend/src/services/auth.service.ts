@@ -17,7 +17,7 @@ export class AuthService {
   /**
    * Helper sinh cặp Access Token và Refresh Token với JTI duy nhất.
    */
-  private static generateAuthTokens(payload: { accountId: number, accountType: string, customerId: number }) {
+  private static generateAuthTokens(payload: { accountId: number, accountType: string, customerId?: number | null }) {
     const accessToken = jwt.sign(
       { ...payload, jti: randomUUID() },
       jwtConfig.secret,
@@ -185,23 +185,27 @@ export class AuthService {
       throw new AppException(ErrorCode.UNAUTHENTICATED);
     }
 
-    // Fetch customer record
-    const customer = await CustomerModel.findByAccountId(account.AccountID);
-    if (!customer) {
-      throw new AppException(ErrorCode.USER_NOT_EXISTED);
+    // Fetch customer record (only for CUSTOMER type)
+    let customerId = null;
+    if (account.AccountType === 'CUSTOMER') {
+      const customer = await CustomerModel.findByAccountId(account.AccountID);
+      if (!customer) {
+        throw new AppException(ErrorCode.USER_NOT_EXISTED);
+      }
+      customerId = customer.CustomerID;
     }
 
     // 4. Khởi tạo Access Token và Refresh Token (Có JTI duy nhất)
     const { accessToken, refreshToken } = this.generateAuthTokens({
       accountId: account.AccountID,
       accountType: account.AccountType,
-      customerId: customer.CustomerID,
+      customerId: customerId,
     });
     
     // 5. Trả về thông tin tối thiểu (không chứa PasswordHash)
     return {
       accountId: account.AccountID,
-      customerId: customer.CustomerID,
+      customerId: customerId,
       accountType: account.AccountType,
       accessToken,
       refreshToken

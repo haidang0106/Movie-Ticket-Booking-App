@@ -8,7 +8,7 @@ async function seedAdmin() {
     
     // Kiểm tra xem đã có admin chưa
     const checkResult = await pool.request()
-      .query("SELECT * FROM [dbo].[Account] WHERE AccountName = 'admin'");
+      .query("SELECT * FROM [dbo].[Account] WHERE Email = 'admin@cine.com'");
       
     if (checkResult.recordset.length > 0) {
       console.log('Tài khoản admin đã tồn tại. Skipper.');
@@ -20,13 +20,13 @@ async function seedAdmin() {
 
     // Chèn tài khoản admin
     await pool.request()
-      .input('username', sql.NVarChar(100), 'admin')
+      .input('email', sql.NVarChar(100), 'admin@cine.com')
       .input('password', sql.NVarChar(255), hashedPassword)
       .input('role', sql.NVarChar(20), 'ADMIN')
       .query(`
         INSERT INTO [dbo].[Account] 
-        (AccountName, AccountPassword, AccountType, IsActive, IsVerified, CreatedAt)
-        VALUES (@username, @password, @role, 1, 1, GETDATE())
+        (Email, PasswordHash, AccountType, IsActive, IsVerified, CreatedAt)
+        VALUES (@email, @password, @role, 1, 1, GETDATE())
       `);
 
     console.log('✅ Đã tạo tài khoản admin thành công (admin / 123456)');

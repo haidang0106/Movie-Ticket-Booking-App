@@ -35,7 +35,7 @@ export class AdminModel {
           m.Title, 
           COUNT(bs.BookingSeatID) as ticketCount
         FROM [dbo].[BookingSeat] bs
-        JOIN [dbo].[Show] s ON bs.ShowID = s.ShowID
+        JOIN [dbo].[Showtime] s ON bs.ShowID = s.ShowID
         JOIN [dbo].[Movie] m ON s.MovieID = m.MovieID
         WHERE bs.Status = 'BOOKED'
         GROUP BY m.Title
@@ -55,9 +55,9 @@ export class AdminModel {
            c.CinemaName, 
            SUM(b.TotalAmount) as revenue
          FROM [dbo].[Booking] b
-         JOIN [dbo].[Show] s ON b.ShowID = s.ShowID
+         JOIN [dbo].[Showtime] s ON b.ShowID = s.ShowID
          JOIN [dbo].[CinemaHall] ch ON s.HallID = ch.HallID
-         JOIN [dbo].[Cinema] c ON ch.CinemaID = c.CinemaID
+         JOIN [dbo].[CinemaComplex] c ON ch.CinemaID = c.CinemaID
          WHERE b.Status = 'COMPLETED'
          GROUP BY c.CinemaName
        `);
@@ -73,7 +73,7 @@ export class AdminModel {
       .query(`
         SELECT TOP 50 
           al.*, 
-          a.AccountName 
+          a.Email as AccountName 
         FROM [dbo].[AuditLog] al
         JOIN [dbo].[Account] a ON al.AccountID = a.AccountID
         ORDER BY al.CreatedAt DESC
