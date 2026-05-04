@@ -146,20 +146,6 @@ export default function RegisterScreen() {
               <Text style={styles.primaryButtonText}>{isLoading ? t('common.loading') : t('register.submit')}</Text>
             </TouchableOpacity>
 
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('register.orContinueWith')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton} onPress={handleSocialLogin}>
-                <Text style={styles.socialButtonText}>{t('common.facebook')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton} onPress={handleSocialLogin}>
-                <Text style={styles.socialButtonText}>{t('common.google')}</Text>
-              </TouchableOpacity>
-            </View>
           </View>
           
           <View style={styles.footer}>
