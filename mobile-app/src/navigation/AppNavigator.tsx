@@ -1,51 +1,60 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { AuthContext } from '../context/AuthContext';
+import { COLORS } from '../constants/colors';
 
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
-import SignUpScreen from '../screens/SignUpScreen';
-import OtpScreen from '../screens/OtpScreen';
-import UsernameScreen from '../screens/UsernameScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+import VerifyOtpScreen from '../screens/auth/VerifyOtpScreen';
+import CompleteProfileScreen from '../screens/auth/CompleteProfileScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import VerifyResetOtpScreen from '../screens/auth/VerifyResetOtpScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import HomeScreen from '../screens/home/HomeScreen';
-import TicketScreen from '../screens/ticket/TicketScreen';
-import MovieScreen from '../screens/movie/MovieScreen';
-import MovieDetailScreen from '../screens/movie/MovieDetailScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
 
-export type RootStackParamList = {
-  Welcome: undefined;
-  SignUp: undefined;
-  Otp: { phoneNumber: string };
-  Username: undefined;
-  Home: undefined;
-  Ticket: undefined;
-  Movie: undefined;
-  MovieDetail: undefined;
-  Profile: undefined;
-};
+const AuthStack = createNativeStackNavigator();
+const MainStack = createNativeStackNavigator();
 
-const Stack = createStackNavigator<RootStackParamList>();
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
+      <AuthStack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="VerifyResetOtp" component={VerifyResetOtpScreen} />
+      <AuthStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+    </AuthStack.Navigator>
+  );
+}
+
+function MainNavigator() {
+  return (
+    <MainStack.Navigator screenOptions={{ headerShown: false }}>
+      <MainStack.Screen name="Home" component={HomeScreen} />
+    </MainStack.Navigator>
+  );
+}
 
 export default function AppNavigator() {
+  const { isAuthenticated, isLoading } = useContext(AuthContext);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: '#000' },
-          animation: 'none', // For instant bottom nav switching
-        }}
-      >
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="SignUp" component={SignUpScreen} />
-        <Stack.Screen name="Otp" component={OtpScreen} />
-        <Stack.Screen name="Username" component={UsernameScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Ticket" component={TicketScreen} />
-        <Stack.Screen name="Movie" component={MovieScreen} />
-        <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-      </Stack.Navigator>
+      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 }

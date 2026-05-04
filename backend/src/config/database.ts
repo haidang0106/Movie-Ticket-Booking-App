@@ -36,6 +36,22 @@ export const connectDB = async (): Promise<sql.ConnectionPool> => {
   try {
     if (!pool) {
       pool = await new sql.ConnectionPool(dbConfig).connect();
+      
+      // Harden session settings for filtered indexes and triggers
+      try {
+        await pool.request().query(`
+          SET QUOTED_IDENTIFIER ON;
+          SET ANSI_NULLS ON;
+          SET ANSI_PADDING ON;
+          SET ANSI_WARNINGS ON;
+          SET CONCAT_NULL_YIELDS_NULL ON;
+          SET ARITHABORT ON;
+          SET NUMERIC_ROUNDABORT OFF;
+        `);
+      } catch (setErr) {
+        console.warn('[⚠️ Database] Không thể thiết lập các tùy chọn SET mặc định:', (setErr as any).message);
+      }
+
       console.log('[✅ Database] Kết nối SQL Server thành công!');
     }
     return pool;

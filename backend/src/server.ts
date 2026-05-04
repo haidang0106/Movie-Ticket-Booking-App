@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 
 import { connectDB } from './config/database';
 import { globalExceptionHandler } from './utils/exceptions/global.exception.handler';
+import authRoutes from './routes/auth.routes';
+import customerRoutes from './routes/customer.routes';
+import adminRoutes from './routes/admin.routes';
 
 // Load biến môi trường từ file .env
 dotenv.config();
@@ -35,11 +38,9 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// TV5: 
-import adminRoutes from './routes/admin.routes';
-import authRoutes from './routes/auth.routes';
-app.use('/api/admin', adminRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth',         authRoutes);
+app.use('/api/customer',     customerRoutes);
+app.use('/api/admin',        adminRoutes);
 
 // ==========================================
 // 3. XỬ LÝ ROUTE KHÔNG TỒN TẠI (404)

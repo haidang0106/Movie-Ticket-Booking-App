@@ -1,6 +1,6 @@
 import { getPool } from '../config/database';
 import sql from 'mssql';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 async function seedAdmin() {
   try {
