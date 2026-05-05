@@ -11,6 +11,7 @@ router.get('/featured', movieController.getFeaturedMovies);          // Phim n�
 router.get('/search', movieController.searchMovies);                 // Tìm kiếm phim
 router.get('/:id', movieController.getMovieById);                    // Chi tiết phim
 router.post('/:id/like', authMiddleware, movieController.likeMovie); // Yêu thích phim (cần đăng nhập)
+router.delete('/:id/like', authMiddleware, movieController.likeMovie); // Bỏ yêu thích phim (toggle)
 
 // === Route quản trị (chỉ ADMIN/SUPER_ADMIN) ===
 router.post('/', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), movieController.createMovie);

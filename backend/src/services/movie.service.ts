@@ -1,126 +1,127 @@
-import { MovieModel, MovieData, MovieFilters } from '../models/movie.model';
-import { AppException } from '../utils/exceptions/app.exception';
-import { ErrorCode } from '../utils/exceptions/error.code';
+import MovieModel from('../models/movie.model');
 
-/**
- * Lấy danh sách phim có phân trang và bộ lọc
- */
-export const getAll = async ({ page = 1, limit = 20, filters = {} }: { page?: number; limit?: number; filters?: MovieFilters }) => {
-  const offset = (page - 1) * limit;
-  const { movies, total } = await MovieModel.findAll({ offset, limit, filters });
-  return { movies, total };
-};
+interface MovieFilters {
+  genre?: string;
+  language?: string;
+  isActive?: boolean;
+  isFeatured?: boolean;
+}
 
-/**
- * Lấy danh sách phim nổi bật (từ cache hoặc DB)
- */
-export const getFeatured = async () => {
-  // TODO: Triển khai Redis cache cho phim nổi bật
-  const { movies } = await MovieModel.findFeatured();
-  return movies;
-};
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  filters?: MovieFilters;
+}
 
-/**
- * Tìm kiếm phim theo từ khóa
- */
-export const searchMovies = async (query: string, { page = 1, limit = 20 }: { page?: number; limit?: number }) => {
-  const offset = (page - 1) * limit;
-  const { movies, total } = await MovieModel.search(query, { offset, limit });
-  return { movies, total };
-};
-
-/**
- * Lấy chi tiết phim theo ID
- */
-export const getById = async (id: number) => {
-  const movie = await MovieModel.findById(id);
-  if (!movie) {
-    throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm MOVIE_NOT_FOUND vào ErrorCode
+class MovieService {
+  /**
+   * Lấy danh sách phim có phân trang
+   */
+  static async getAll({ page = 1, limit = 20, filters = {} }: PaginationOptions) {
+    const offset = (page - 1) * limit;
+    return await MovieModel.findAll({ offset, limit, filters });
   }
-  return movie;
-};
 
-/**
- * Thêm phim mới
- */
-export const create = async (movieData: MovieData) => {
-  // Kiểm tra trường bắt buộc
-  const requiredFields: (keyof MovieData)[] = ['title', 'genre', 'language', 'runtime', 'releaseDate'];
-  for (const field of requiredFields) {
-    if (!movieData[field]) {
-      throw new AppException(ErrorCode.INVALID_DATA);
+  /**
+   * Lấy danh sách phim nổi bật
+   */
+  static async getFeatured() {
+    return await MovieModel.findFeatured();
+  }
+
+  /**
+   * Tìm kiếm phim theo từ khóa
+   */
+  static async search(query: string, { page = 1, limit = 20 }: { page?: number; limit?: number }) {
+    const offset = (page - 1) * limit;
+    return await MovieModel.search(query, { offset, limit });
+  }
+
+  /**
+   * Lấy chi tiết phim theo ID
+   */
+  static async getById(id: number) {
+    const movie = await MovieModel.findById(id);
+    if (!movie) {
+      throw new AppException(ErrorCode.MOVIE_NOT_FOUND);
+    }
+    return movie;
+  }
+
+  /**
+   * Thêm phim mới (Admin)
+   */
+  static async create(movieData: any) {
+    this.validateMovieData(movieData);
+    return await MovieModel.create(movieData);
+  }
+
+  /**
+   * Cập nhật phim (Admin)
+   */
+  static async update(id: number, movieData: any) {
+    await this.getById(id); // Kiểm tra tồn tại
+    this.validateMovieData(movieData, false);
+    return await MovieModel.update(id, movieData);
+  }
+
+  /**
+   * Xóa mềm phim (Admin)
+   */
+  static async delete(id: number) {
+    await this.getById(id); // Kiểm tra tồn tại
+    await MovieModel.softDelete(id);
+    return { MovieID: id };
+  }
+
+  /**
+   * Bật/tắt phim nổi bật (Admin)
+   */
+  static async toggleFeatured(id: number) {
+    return await MovieModel.toggleFeatured(id);
+  }
+
+  /**
+   * Toggle like/unlike phim
+   */
+  static async toggleLike(movieId: number, customerId: number) {
+    await this.getById(movieId); // Kiểm tra phim tồn tại
+    return await MovieModel.toggleLike(movieId, customerId);
+  }
+
+  /**
+   * Lấy trạng thái like của khách hàng
+   */
+  static async getLikeStatus(movieId: number, customerId: number) {
+    return await MovieModel.getLikeStatus(movieId, customerId);
+  }
+
+  /**
+   * Validate dữ liệu phim
+   */
+  private static validateMovieData(data: any, isCreate: boolean = true) {
+    if (isCreate) {
+      if (!data.title) throw this.createValidationError('Tên phim là bắt buộc', 'TITLE_REQUIRED');
+      if (!data.genre) throw this.createValidationError('Thể loại là bắt buộc', 'GENRE_REQUIRED');
+      if (!data.language) throw this.createValidationError('Ngôn ngữ là bắt buộc', 'LANGUAGE_REQUIRED');
+      if (!data.runtime) throw this.createValidationError('Thời lượng là bắt buộc', 'RUNTIME_REQUIRED');
+    }
+
+    if (data.runtime && (isNaN(data.runtime) || data.runtime <= 0)) {
+      throw this.createValidationError('Thời lượng phải là số dương', 'INVALID_RUNTIME');
+    }
+
+    if (data.rating && (isNaN(data.rating) || data.rating < 0 || data.rating > 10)) {
+      throw this.createValidationError('Rating phải từ 0-10', 'INVALID_RATING');
     }
   }
-  
-  const movie = await MovieModel.create(movieData);
-  return movie;
-};
 
-/**
- * Cập nhật thông tin phim
- */
-export const update = async (id: number, movieData: Partial<MovieData>) => {
-  const movie = await MovieModel.findById(id);
-  if (!movie) {
-    throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm MOVIE_NOT_FOUND vào ErrorCode
+  private static createValidationError(message: string, errorCode: string) {
+    const error: any = new Error(message);
+    error.statusCode = 400;
+    error.errorCode = errorCode;
+    return error;
   }
-  
-  // Gộp dữ liệu hiện tại với dữ liệu cập nhật (giữ giá trị cũ nếu không truyền)
-  const mergedData: MovieData = {
-    title: movieData.title !== undefined ? movieData.title : movie.MovieTitle,
-    genre: movieData.genre !== undefined ? movieData.genre : movie.MovieGenre,
-    language: movieData.language !== undefined ? movieData.language : movie.MovieLanguage,
-    runtime: movieData.runtime !== undefined ? movieData.runtime : movie.MovieRuntime,
-    releaseDate: movieData.releaseDate !== undefined ? movieData.releaseDate : movie.MovieReleaseDate,
-    actor: movieData.actor !== undefined ? movieData.actor : movie.MovieActor,
-    director: movieData.director !== undefined ? movieData.director : movie.MovieDirector,
-    description: movieData.description !== undefined ? movieData.description : movie.MovieDescription,
-    trailerUrl: movieData.trailerUrl !== undefined ? movieData.trailerUrl : movie.TrailerUrl,
-    rating: movieData.rating !== undefined ? movieData.rating : movie.Rating,
-    isFeatured: movieData.isFeatured !== undefined ? movieData.isFeatured : movie.IsFeatured,
-    featuredOrder: movieData.featuredOrder !== undefined ? movieData.featuredOrder : movie.FeaturedOrder,
-    isActive: movieData.isActive !== undefined ? movieData.isActive : movie.IsActive
-  };
-  
-  const updatedMovie = await MovieModel.update(id, mergedData);
-  return updatedMovie;
-};
+}
 
-/**
- * Xóa mềm phim (set IsActive = 0)
- */
-export const deleteMovie = async (id: number) => {
-  const movie = await MovieModel.findById(id);
-  if (!movie) {
-    throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm MOVIE_NOT_FOUND vào ErrorCode
-  }
-  
-  await MovieModel.softDelete(id);
-  return movie;
-};
-
-/**
- * Bật/tắt trạng thái phim nổi bật
- */
-export const toggleFeatured = async (id: number) => {
-  const movie = await MovieModel.findById(id);
-  if (!movie) {
-    throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm MOVIE_NOT_FOUND vào ErrorCode
-  }
-  
-  const result = await MovieModel.toggleFeatured(id);
-  return result;
-};
-
-/**
- * Thích/bỏ thích phim
- */
-export const likeMovie = async (movieId: number, customerId: number) => {
-  const movie = await MovieModel.findById(movieId);
-  if (!movie) {
-    throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm MOVIE_NOT_FOUND vào ErrorCode
-  }
-  
-  const liked = await MovieModel.toggleLike(movieId, customerId);
-  return liked;
-};
+export default MovieService;

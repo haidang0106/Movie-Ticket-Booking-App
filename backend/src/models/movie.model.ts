@@ -1,27 +1,26 @@
-import sql from 'mssql';
-import { getPool } from '../config/database';
-
-export interface MovieFilters {
-  genre?: string;
-  language?: string;
-  isActive?: boolean | number;
-  isFeatured?: boolean | number;
-}
+import { mssql } from '../config/db';
 
 export interface MovieData {
   title: string;
   genre: string;
   language: string;
   runtime: number;
-  releaseDate: Date | string;
+  releaseDate: Date;
   actor?: string;
   director?: string;
   description?: string;
   trailerUrl?: string;
   rating?: number;
-  isFeatured?: boolean | number;
+  isFeatured?: boolean;
   featuredOrder?: number;
-  isActive?: boolean | number;
+  isActive?: boolean;
+}
+
+export interface MovieFilters {
+  genre?: string;
+  language?: string;
+  isActive?: boolean;
+  isFeatured?: boolean;
 }
 
 export class MovieModel {
@@ -29,7 +28,7 @@ export class MovieModel {
    * Lấy danh sách phim có phân trang và bộ lọc
    */
   static async findAll({ offset = 0, limit = 20, filters = {} }: { offset?: number; limit?: number; filters?: MovieFilters }) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     
     // Tạo request riêng cho count và data (tránh xung đột input params)
     const countRequest = pool.request();
@@ -39,28 +38,28 @@ export class MovieModel {
     
     if (filters.genre) {
       whereConditions.push('MovieGenre LIKE @genre');
-      countRequest.input('genre', sql.NVarChar, `%${filters.genre}%`);
-      dataRequest.input('genre', sql.NVarChar, `%${filters.genre}%`);
+      countRequest.input('genre', mssql.NVarChar, `%${filters.genre}%`);
+      dataRequest.input('genre', mssql.NVarChar, `%${filters.genre}%`);
     }
     
     if (filters.language) {
       whereConditions.push('MovieLanguage = @language');
-      countRequest.input('language', sql.NVarChar, filters.language);
-      dataRequest.input('language', sql.NVarChar, filters.language);
+      countRequest.input('language', mssql.NVarChar, filters.language);
+      dataRequest.input('language', mssql.NVarChar, filters.language);
     }
     
     if (filters.isActive !== undefined) {
       whereConditions.push('IsActive = @isActive');
       const isActiveVal = filters.isActive ? 1 : 0;
-      countRequest.input('isActive', sql.Bit, isActiveVal);
-      dataRequest.input('isActive', sql.Bit, isActiveVal);
+      countRequest.input('isActive', mssql.Bit, isActiveVal);
+      dataRequest.input('isActive', mssql.Bit, isActiveVal);
     }
     
     if (filters.isFeatured !== undefined) {
       whereConditions.push('IsFeatured = @isFeatured');
       const isFeaturedVal = filters.isFeatured ? 1 : 0;
-      countRequest.input('isFeatured', sql.Bit, isFeaturedVal);
-      dataRequest.input('isFeatured', sql.Bit, isFeaturedVal);
+      countRequest.input('isFeatured', mssql.Bit, isFeaturedVal);
+      dataRequest.input('isFeatured', mssql.Bit, isFeaturedVal);
     }
     
     const whereSQL = whereConditions.length > 0 
@@ -77,8 +76,8 @@ export class MovieModel {
     const total = countResult.recordset[0].total;
     
     // Lấy dữ liệu phân trang
-    dataRequest.input('offset', sql.Int, offset);
-    dataRequest.input('limit', sql.Int, limit);
+    dataRequest.input('offset', mssql.Int, offset);
+    dataRequest.input('limit', mssql.Int, limit);
     
     const result = await dataRequest.query(`
       SELECT * FROM Movie 
@@ -97,7 +96,7 @@ export class MovieModel {
    * Lấy danh sách phim nổi bật (đang chiếu)
    */
   static async findFeatured() {
-    const pool = getPool();
+    const pool = await mssql.connect();
     const result = await pool.request()
       .query(`
         SELECT * FROM Movie 
@@ -111,11 +110,11 @@ export class MovieModel {
    * Tìm kiếm phim theo từ khóa (tên, thể loại, ngôn ngữ)
    */
   static async search(query: string, { offset = 0, limit = 20 }: { offset?: number; limit?: number }) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     
     // Đếm tổng số kết quả
     const countResult = await pool.request()
-      .input('query', sql.NVarChar, `%${query}%`)
+      .input('query', mssql.NVarChar, `%${query}%`)
       .query(`
         SELECT COUNT(*) AS total 
         FROM Movie 
@@ -127,9 +126,9 @@ export class MovieModel {
     
     // Lấy dữ liệu phân trang
     const result = await pool.request()
-      .input('query', sql.NVarChar, `%${query}%`)
-      .input('offset', sql.Int, offset)
-      .input('limit', sql.Int, limit)
+      .input('query', mssql.NVarChar, `%${query}%`)
+      .input('offset', mssql.Int, offset)
+      .input('limit', mssql.Int, limit)
       .query(`
         SELECT * FROM Movie 
         WHERE (MovieTitle LIKE @query OR MovieGenre LIKE @query OR MovieLanguage LIKE @query)
@@ -148,9 +147,9 @@ export class MovieModel {
    * Lấy chi tiết phim theo ID
    */
   static async findById(id: number) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     const result = await pool.request()
-      .input('id', sql.Int, id)
+      .input('id', mssql.Int, id)
       .query('SELECT * FROM Movie WHERE MovieID = @id');
     return result.recordset[0] || null;
   }
@@ -159,21 +158,21 @@ export class MovieModel {
    * Thêm phim mới
    */
   static async create(movieData: MovieData) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     const result = await pool.request()
-      .input('title', sql.NVarChar, movieData.title)
-      .input('genre', sql.NVarChar, movieData.genre)
-      .input('language', sql.NVarChar, movieData.language)
-      .input('runtime', sql.Int, movieData.runtime)
-      .input('releaseDate', sql.Date, movieData.releaseDate)
-      .input('actor', sql.NVarChar, movieData.actor || null)
-      .input('director', sql.NVarChar, movieData.director || null)
-      .input('description', sql.NVarChar, movieData.description || null)
-      .input('trailerUrl', sql.NVarChar, movieData.trailerUrl || null)
-      .input('rating', sql.Decimal(3, 1), movieData.rating || null)
-      .input('isFeatured', sql.Bit, movieData.isFeatured ? 1 : 0)
-      .input('featuredOrder', sql.Int, movieData.featuredOrder || 0)
-      .input('isActive', sql.Bit, movieData.isActive !== undefined ? movieData.isActive : 1)
+      .input('title', mssql.NVarChar, movieData.title)
+      .input('genre', mssql.NVarChar, movieData.genre)
+      .input('language', mssql.NVarChar, movieData.language)
+      .input('runtime', mssql.Int, movieData.runtime)
+      .input('releaseDate', mssql.Date, movieData.releaseDate)
+      .input('actor', mssql.NVarChar, movieData.actor || null)
+      .input('director', mssql.NVarChar, movieData.director || null)
+      .input('description', mssql.NVarChar, movieData.description || null)
+      .input('trailerUrl', mssql.NVarChar, movieData.trailerUrl || null)
+      .input('rating', mssql.Decimal(3, 1), movieData.rating || null)
+      .input('isFeatured', mssql.Bit, movieData.isFeatured ? 1 : 0)
+      .input('featuredOrder', mssql.Int, movieData.featuredOrder || 0)
+      .input('isActive', mssql.Bit, movieData.isActive !== undefined ? movieData.isActive : 1)
       .query(`
         INSERT INTO Movie (
           MovieTitle, MovieGenre, MovieLanguage, MovieRuntime, MovieReleaseDate,
@@ -193,23 +192,23 @@ export class MovieModel {
   /**
    * Cập nhật thông tin phim
    */
-  static async update(id: number, movieData: MovieData) {
-    const pool = getPool();
+  static async update(id: number, movieData: Partial<MovieData>) {
+    const pool = await mssql.connect();
     await pool.request()
-      .input('id', sql.Int, id)
-      .input('title', sql.NVarChar, movieData.title)
-      .input('genre', sql.NVarChar, movieData.genre)
-      .input('language', sql.NVarChar, movieData.language)
-      .input('runtime', sql.Int, movieData.runtime)
-      .input('releaseDate', sql.Date, movieData.releaseDate)
-      .input('actor', sql.NVarChar, movieData.actor || null)
-      .input('director', sql.NVarChar, movieData.director || null)
-      .input('description', sql.NVarChar, movieData.description || null)
-      .input('trailerUrl', sql.NVarChar, movieData.trailerUrl || null)
-      .input('rating', sql.Decimal(3, 1), movieData.rating || null)
-      .input('isFeatured', sql.Bit, movieData.isFeatured ? 1 : 0)
-      .input('featuredOrder', sql.Int, movieData.featuredOrder || 0)
-      .input('isActive', sql.Bit, movieData.isActive !== undefined ? movieData.isActive : 1)
+      .input('id', mssql.Int, id)
+      .input('title', mssql.NVarChar, movieData.title)
+      .input('genre', mssql.NVarChar, movieData.genre)
+      .input('language', mssql.NVarChar, movieData.language)
+      .input('runtime', mssql.Int, movieData.runtime)
+      .input('releaseDate', mssql.Date, movieData.releaseDate)
+      .input('actor', mssql.NVarChar, movieData.actor || null)
+      .input('director', mssql.NVarChar, movieData.director || null)
+      .input('description', mssql.NVarChar, movieData.description || null)
+      .input('trailerUrl', mssql.NVarChar, movieData.trailerUrl || null)
+      .input('rating', mssql.Decimal(3, 1), movieData.rating || null)
+      .input('isFeatured', mssql.Bit, movieData.isFeatured ? 1 : 0)
+      .input('featuredOrder', mssql.Int, movieData.featuredOrder || 0)
+      .input('isActive', mssql.Bit, movieData.isActive !== undefined ? movieData.isActive : 1)
       .query(`
         UPDATE Movie SET
           MovieTitle = @title,
@@ -234,9 +233,9 @@ export class MovieModel {
    * Xóa mềm phim (chỉ set IsActive = 0)
    */
   static async softDelete(id: number) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     await pool.request()
-      .input('id', sql.Int, id)
+      .input('id', mssql.Int, id)
       .query('UPDATE Movie SET IsActive = 0 WHERE MovieID = @id');
     return { MovieID: id };
   }
@@ -245,11 +244,11 @@ export class MovieModel {
    * Bật/tắt trạng thái phim nổi bật
    */
   static async toggleFeatured(id: number) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     
     // Lấy thông tin phim hiện tại
     const movieResult = await pool.request()
-      .input('id', sql.Int, id)
+      .input('id', mssql.Int, id)
       .query('SELECT * FROM Movie WHERE MovieID = @id');
     
     const movie = movieResult.recordset[0];
@@ -270,9 +269,9 @@ export class MovieModel {
     
     // Cập nhật phim
     await pool.request()
-      .input('id', sql.Int, id)
-      .input('isFeatured', sql.Bit, newFeatured ? 1 : 0)
-      .input('featuredOrder', sql.Int, newFeaturedOrder)
+      .input('id', mssql.Int, id)
+      .input('isFeatured', mssql.Bit, newFeatured ? 1 : 0)
+      .input('featuredOrder', mssql.Int, newFeaturedOrder)
       .query(`
         UPDATE Movie SET
           IsFeatured = @isFeatured,
@@ -287,7 +286,7 @@ export class MovieModel {
    * Lấy thứ tự nổi bật lớn nhất (dùng cho admin)
    */
   static async getMaxFeaturedOrder() {
-    const pool = getPool();
+    const pool = await mssql.connect();
     const result = await pool.request()
       .query('SELECT ISNULL(MAX(FeaturedOrder), 0) AS maxOrder FROM Movie WHERE IsFeatured = 1');
     return result.recordset[0].maxOrder;
@@ -297,26 +296,26 @@ export class MovieModel {
    * Thích/bỏ thích phim (toggle)
    */
   static async toggleLike(movieId: number, customerId: number) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     
     // Kiểm tra đã thích chưa
     const existing = await pool.request()
-      .input('movieId', sql.Int, movieId)
-      .input('customerId', sql.Int, customerId)
+      .input('movieId', mssql.Int, movieId)
+      .input('customerId', mssql.Int, customerId)
       .query('SELECT * FROM LikeMovie WHERE MovieID = @movieId AND CustomerID = @customerId');
     
     if (existing.recordset.length > 0) {
       // Bỏ thích
       await pool.request()
-        .input('movieId', sql.Int, movieId)
-        .input('customerId', sql.Int, customerId)
+        .input('movieId', mssql.Int, movieId)
+        .input('customerId', mssql.Int, customerId)
         .query('DELETE FROM LikeMovie WHERE MovieID = @movieId AND CustomerID = @customerId');
       return false;
     } else {
       // Thích
       await pool.request()
-        .input('movieId', sql.Int, movieId)
-        .input('customerId', sql.Int, customerId)
+        .input('movieId', mssql.Int, movieId)
+        .input('customerId', mssql.Int, customerId)
         .query(`
           INSERT INTO LikeMovie (MovieID, CustomerID, IsLiked)
           VALUES (@movieId, @customerId, 1)
@@ -329,10 +328,10 @@ export class MovieModel {
    * Lấy trạng thái thích phim của khách hàng
    */
   static async getLikeStatus(movieId: number, customerId: number) {
-    const pool = getPool();
+    const pool = await mssql.connect();
     const result = await pool.request()
-      .input('movieId', sql.Int, movieId)
-      .input('customerId', sql.Int, customerId)
+      .input('movieId', mssql.Int, movieId)
+      .input('customerId', mssql.Int, customerId)
       .query('SELECT IsLiked FROM LikeMovie WHERE MovieID = @movieId AND CustomerID = @customerId');
     
     return result.recordset.length > 0 ? result.recordset[0].IsLiked : false;

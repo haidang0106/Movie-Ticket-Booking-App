@@ -2,103 +2,100 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/helpers/async.handler';
 import { AppException } from '../../utils/exceptions/app.exception';
 import { ErrorCode } from '../../utils/exceptions/error.code';
-import { AuthenticatedRequest } from '../../middlewares/auth.middleware';
 import * as movieService from '../../services/movie.service';
+import { ApiResponse } from '../../utils/dto/api.response';
+import { ResponseCode } from '../../utils/constants/response.code';
 
-// GET /api/movies — Danh sách phim đang chiếu
+// GET /api/movies — Danh sách phim (phân trang)
 export const getMovies = asyncHandler(async (req: Request, res: Response) => {
-  const { page = 1, limit = 20, genre, language } = req.query;
-  const filters: Record<string, any> = {};
-  if (genre) filters.genre = genre;
-  if (language) filters.language = language;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
   
-  const { movies, total } = await movieService.getAll({ 
-    page: Number(page), 
-    limit: Number(limit), 
-    filters 
-  });
-
-  return res.status(200).json({
-    success: true,
-    data: movies,
-    pagination: {
-      page: Number(page),
-      limit: Number(limit),
-      total,
-      totalPages: Math.ceil(total / Number(limit))
-    }
-  });
+  const filters: any = {};
+  if (req.query.genre) filters.genre = req.query.genre;
+  if (req.query.language) filters.language = req.query.language;
+  if (req.query.isActive !== undefined) filters.isActive = req.query.isActive === 'true';
+  if (req.query.isFeatured !== undefined) filters.isFeatured = req.query.isFeatured === 'true';
+  
+  const { movies, total } = await movieService.getAll({ page, limit, filters });
+  
+  return res.status(200).json(ApiResponse.paginate(ResponseCode.SUCCESS, movies, {
+    page,
+    limit,
+    total
+  }));
 });
 
-// GET /api/movies/featured — Danh sách phim nổi bật (từ Redis cache)
+// GET /api/movies/featured — Danh sách phim nổi bật
 export const getFeaturedMovies = asyncHandler(async (req: Request, res: Response) => {
   const movies = await movieService.getFeatured();
-  return res.status(200).json({ success: true, data: movies });
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, movies));
 });
 
-// GET /api/movies/search?q= — Tìm kiếm phim (theo tên, thể loại, ngôn ngữ)
+// GET /api/movies/search?q= — Tìm kiếm phim
 export const searchMovies = asyncHandler(async (req: Request, res: Response) => {
-  const { q, page = 1, limit = 20 } = req.query;
-  if (!q) {
+  const query = req.query.q as string;
+  if (!query) {
     throw new AppException(ErrorCode.INVALID_DATA);
   }
   
-  const { movies, total } = await movieService.searchMovies(q as string, { 
-    page: Number(page), 
-    limit: Number(limit) 
-  });
-
-  return res.status(200).json({
-    success: true,
-    data: movies,
-    pagination: {
-      page: Number(page),
-      limit: Number(limit),
-      total,
-      totalPages: Math.ceil(total / Number(limit))
-    }
-  });
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  
+  const { movies, total } = await movieService.search(query, { page, limit });
+  
+  return res.status(200).json(ApiResponse.paginate(ResponseCode.SUCCESS, movies, {
+    page,
+    limit,
+    total
+  }));
 });
 
 // GET /api/movies/:id — Chi tiết phim
 export const getMovieById = asyncHandler(async (req: Request, res: Response) => {
-  const movie = await movieService.getById(Number(req.params.id));
-  return res.status(200).json({ success: true, data: movie });
+  const movie = await movieService.getById(parseInt(req.params.id));
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, movie));
+});
+
+// POST & DELETE /api/movies/:id/like — Thích / Bỏ thích phim
+export const likeMovie = asyncHandler(async (req: Request, res: Response) => {
+  const movieId = parseInt(req.params.id);
+  
+  // @ts-ignore - Giả định req.user đã được gán bởi authMiddleware
+  const customerId = req.user?.customerId;
+  
+  if (!customerId) {
+    throw new AppException(ErrorCode.UNAUTHORIZED);
+  }
+  
+  const isLiked = await movieService.likeMovie(movieId, customerId);
+  return res.status(200).json(ApiResponse.success(
+    ResponseCode.SUCCESS, 
+    { isLiked }, 
+    isLiked ? 'Đã thích phim' : 'Đã bỏ thích phim'
+  ));
 });
 
 // POST /api/admin/movies — Thêm phim (Admin)
 export const createMovie = asyncHandler(async (req: Request, res: Response) => {
   const movie = await movieService.create(req.body);
-  return res.status(201).json({ success: true, data: movie, message: 'Thêm phim thành công' });
+  return res.status(201).json(ApiResponse.success(ResponseCode.USER_CREATED, movie, 'Thêm phim thành công'));
 });
 
 // PUT /api/admin/movies/:id — Sửa phim (Admin)
 export const updateMovie = asyncHandler(async (req: Request, res: Response) => {
-  const movie = await movieService.update(Number(req.params.id), req.body);
-  return res.status(200).json({ success: true, data: movie, message: 'Cập nhật phim thành công' });
+  const movie = await movieService.update(parseInt(req.params.id), req.body);
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, movie, 'Cập nhật phim thành công'));
 });
 
-// DELETE /api/admin/movies/:id — Xóa phim (Admin, soft delete)
+// DELETE /api/admin/movies/:id — Xóa phim (Admin - soft delete)
 export const deleteMovie = asyncHandler(async (req: Request, res: Response) => {
-  await movieService.deleteMovie(Number(req.params.id));
-  return res.status(200).json({ success: true, data: null, message: 'Xóa phim thành công' });
+  const result = await movieService.deleteMovie(parseInt(req.params.id));
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, result, 'Xóa phim thành công'));
 });
 
-// PUT /api/admin/movies/:id/featured — Đánh dấu/bỏ phim nổi bật (Admin)
+// PUT /api/admin/movies/:id/featured — Bật/tắt phim nổi bật (Admin)
 export const toggleFeaturedMovie = asyncHandler(async (req: Request, res: Response) => {
-  const movie = await movieService.toggleFeatured(Number(req.params.id));
-  const message = movie.IsFeatured 
-    ? 'Đánh dấu phim nổi bật thành công' 
-    : 'Bỏ đánh dấu phim nổi bật thành công';
-  return res.status(200).json({ success: true, data: movie, message });
-});
-
-// POST /api/movies/:id/like — Yêu thích/bỏ yêu thích phim
-export const likeMovie = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const liked = await movieService.likeMovie(Number(req.params.id), req.user!.customerId);
-  return res.status(200).json({ 
-    success: true, 
-    data: { liked }, 
-    message: liked ? 'Yêu thích phim thành công' : 'Bỏ yêu thích phim thành công' 
-  });
+  const result = await movieService.toggleFeatured(parseInt(req.params.id));
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, result, 'Đã thay đổi trạng thái nổi bật'));
 });
