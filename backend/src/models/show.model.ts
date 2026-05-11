@@ -94,7 +94,7 @@ class ShowModel {
   /**
    * Lấy sơ đồ ghế theo suất chiếu kèm trạng thái từ Redis
    */
-  static async getSeats(showId: number): Promise<{ seats: SeatInfo[]; show: Show }> {
+  static async getSeatsByShowId(showId: number): Promise<{ seats: SeatInfo[]; show: Show }> {
     const pool = await connectDB();
     
     // Lấy thông tin suất chiếu
@@ -263,6 +263,14 @@ class ShowModel {
       .query('DELETE FROM Showtime WHERE ShowID = @id');
     
     return { ShowID: id };
+  }
+
+  static async getByCinemaId(cinemaId: number, filters: any = {}): Promise<Show[]> {
+    const pool = await connectDB();
+    const result = await pool.request()
+      .input('cinemaId', mssql.Int, cinemaId)
+      .query('SELECT * FROM Showtime WHERE HallID IN (SELECT HallID FROM CinemaHall WHERE CinemaID = @cinemaId)');
+    return result.recordset;
   }
 }
 

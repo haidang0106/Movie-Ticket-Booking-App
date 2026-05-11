@@ -97,10 +97,11 @@ export const deleteShow = async (id: number) => {
  */
 export const calculateTicketPrice = async (showId: number, seatId: number) => {
   // Lấy thông tin suất chiếu
-  const show = await ShowModel.findById(showId);
-  if (!show) {
+  const result = await ShowModel.findById(showId);
+  if (!result) {
     throw new AppException(ErrorCode.SHOW_NOT_FOUND);
   }
+  const show = result.show;
   
   // Lấy thông tin ghế
   const pool = getPool();
@@ -136,4 +137,13 @@ export const calculateTicketPrice = async (showId: number, seatId: number) => {
     totalPrice: totalPrice,
     seatType: seat.SeatType
   };
+};
+export default {
+  getById,
+  getSeatsByShowId,
+  getByCinemaId,
+  create,
+  update,
+  deleteShow,
+  calculateTicketPrice
 };
