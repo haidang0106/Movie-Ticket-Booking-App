@@ -27,7 +27,7 @@ export const getShowSeats = asyncHandler(async (req: Request, res: Response) => 
   return res.status(200).json({ 
     success: true, 
     data: {
-      showInfo: seatData.showInfo,
+      showInfo: seatData.show,
       seats: seatData.seats
     }
   });
@@ -79,6 +79,6 @@ export const updateShow = asyncHandler(async (req: Request, res: Response) => {
 
 // DELETE /api/admin/shows/:id — Xóa suất chiếu (Admin, kiểm tra không có vé)
 export const deleteShow = asyncHandler(async (req: Request, res: Response) => {
-  await ShowService.delete(Number(req.params.id));
+  await ShowService.deleteShow(Number(req.params.id));
   return res.status(200).json({ success: true, data: null, message: 'Xóa suất chiếu thành công' });
 });
