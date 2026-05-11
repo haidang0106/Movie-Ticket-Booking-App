@@ -1,4 +1,5 @@
-import { mssql } from('../config/db');
+import * as mssql from 'mssql';
+import { connectDB } from '../config/database';
 
 interface CinemaFilters {
   offset?: number;
@@ -32,7 +33,7 @@ class CinemaModel {
    * Lấy danh sách cụm rạp có phân trang và lọc theo thành phố
    */
   static async findAll({ offset = 0, limit = 20, filters = {} }: { offset?: number; limit?: number; filters?: CinemaFilters }): Promise<{ cinemas: Cinema[]; total: number }> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     const countRequest = pool.request();
     const dataRequest = pool.request();
@@ -49,7 +50,7 @@ class CinemaModel {
     
     const countResult = await countRequest.query(`
       SELECT COUNT(*) AS total 
-      FROM Cinema 
+      FROM CinemaComplex 
       ${whereSQL}
     `);
     
@@ -60,7 +61,7 @@ class CinemaModel {
     
     const result = await dataRequest.query(`
       SELECT c.*, ct.CityName 
-      FROM Cinema c
+      FROM CinemaComplex c
       LEFT JOIN City ct ON c.CityID = ct.CityID
       ${whereSQL}
       ORDER BY c.CinemaName
@@ -77,11 +78,11 @@ class CinemaModel {
    * Lấy chi tiết cụm rạp kèm danh sách phòng chiếu
    */
   static async findById(id: number): Promise<{ cinema: Cinema; halls: any[] } | null> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     const cinemaResult = await pool.request()
       .input('id', mssql.Int, id)
-      .query('SELECT * FROM Cinema WHERE CinemaID = @id AND IsActive = 1');
+      .query('SELECT * FROM CinemaComplex WHERE CinemaID = @id AND IsActive = 1');
     
     if (cinemaResult.recordset.length === 0) return null;
     
@@ -101,13 +102,13 @@ class CinemaModel {
    * Lấy lịch chiếu theo cụm rạp
    */
   static async getShows(id: number, date?: string): Promise<{ shows: any[] }> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     let query = `
       SELECT s.*, m.MovieTitle, m.MovieGenre, m.MovieRuntime, m.Rating
-      FROM Show s
+      FROM Showtime s
       INNER JOIN CinemaHall ch ON s.HallID = ch.HallID
-      INNER JOIN Cinema c ON ch.CinemaID = c.CinemaID
+      INNER JOIN CinemaComplex c ON ch.CinemaID = c.CinemaID
       INNER JOIN Movie m ON s.MovieID = m.MovieID
       WHERE c.CinemaID = @cinemaId AND m.IsActive = 1
     `;
@@ -130,7 +131,7 @@ class CinemaModel {
    * Thêm cụm rạp mới (Admin)
    */
   static async create(cinemaData: CinemaData): Promise<Cinema> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     const result = await pool.request()
       .input('cinemaName', mssql.NVarChar, cinemaData.cinemaName)
       .input('address', mssql.NVarChar, cinemaData.address || null)
@@ -140,7 +141,7 @@ class CinemaModel {
       .input('longitude', mssql.Decimal(9, 6), cinemaData.longitude || null)
       .input('isActive', mssql.Bit, cinemaData.isActive !== undefined ? cinemaData.isActive : 1)
       .query(`
-        INSERT INTO Cinema (
+        INSERT INTO CinemaComplex (
           CinemaName, Address, District, CityID, Latitude, Longitude, IsActive
         ) 
         OUTPUT INSERTED.*
@@ -155,7 +156,7 @@ class CinemaModel {
    * Cập nhật thông tin cụm rạp (Admin)
    */
   static async update(id: number, cinemaData: Partial<CinemaData>): Promise<Cinema> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     await pool.request()
       .input('id', mssql.Int, id)
       .input('cinemaName', mssql.NVarChar, cinemaData.cinemaName)
@@ -165,7 +166,7 @@ class CinemaModel {
       .input('latitude', mssql.Decimal(9, 6), cinemaData.latitude || null)
       .input('longitude', mssql.Decimal(9, 6), cinemaData.longitude || null)
       .query(`
-        UPDATE Cinema SET
+        UPDATE CinemaComplex SET
           CinemaName = @cinemaName,
           Address = @address,
           District = @district,

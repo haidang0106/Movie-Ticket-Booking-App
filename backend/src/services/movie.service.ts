@@ -1,4 +1,6 @@
-import MovieModel from('../models/movie.model');
+import MovieModel from '../models/movie.model';
+import { AppException } from '../utils/exceptions/app.exception';
+import { ErrorCode } from '../utils/exceptions/error.code';
 
 interface MovieFilters {
   genre?: string;

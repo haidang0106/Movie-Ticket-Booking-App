@@ -9,6 +9,9 @@ import { globalExceptionHandler } from './utils/exceptions/global.exception.hand
 import authRoutes from './routes/auth.routes';
 import customerRoutes from './routes/customer.routes';
 import adminRoutes from './routes/admin.routes';
+import movieRoutes from './routes/movie.routes';
+import cinemaRoutes from './routes/cinema.routes';
+import showRoutes from './routes/show.routes';
 
 // Load biến môi trường từ file .env
 dotenv.config();
@@ -41,6 +44,9 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.use('/api/auth',         authRoutes);
 app.use('/api/customer',     customerRoutes);
 app.use('/api/admin',        adminRoutes);
+app.use('/api/movies',       movieRoutes);
+app.use('/api/cinemas',     cinemaRoutes);
+app.use('/api/shows',       showRoutes);
 
 // ==========================================
 // 3. XỬ LÝ ROUTE KHÔNG TỒN TẠI (404)

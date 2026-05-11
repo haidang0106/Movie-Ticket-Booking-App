@@ -1,4 +1,5 @@
-import { mssql } from('../config/db');
+import * as mssql from 'mssql';
+import { connectDB } from '../config/database';
 
 interface ShowData {
   movieId: number;
@@ -36,7 +37,7 @@ class ShowModel {
    * Lấy chi tiết suất chiếu
    */
   static async findById(id: number): Promise<{ show: Show; movie: any; hall: any; cinema: any } | null> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     const result = await pool.request()
       .input('id', mssql.Int, id)
@@ -45,10 +46,10 @@ class ShowModel {
                m.MovieTitle, m.MovieGenre, m.MovieRuntime, m.MovieLanguage, m.Rating, m.IsFeatured,
                ch.HallName, ch.TotalRows, ch.TotalCols, ch.TotalSeats,
                c.CinemaName, c.Address, c.District
-        FROM Show s
+        FROM Showtime s
         INNER JOIN Movie m ON s.MovieID = m.MovieID
         INNER JOIN CinemaHall ch ON s.HallID = ch.HallID
-        INNER JOIN Cinema c ON ch.CinemaID = c.CinemaID
+        INNER JOIN CinemaComplex c ON ch.CinemaID = c.CinemaID
         WHERE s.ShowID = @id AND m.IsActive = 1
       `);
     
@@ -94,12 +95,12 @@ class ShowModel {
    * Lấy sơ đồ ghế theo suất chiếu kèm trạng thái từ Redis
    */
   static async getSeats(showId: number): Promise<{ seats: SeatInfo[]; show: Show }> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     // Lấy thông tin suất chiếu
     const showResult = await pool.request()
       .input('showId', mssql.Int, showId)
-      .query('SELECT * FROM Show WHERE ShowID = @showId');
+      .query('SELECT * FROM Showtime WHERE ShowID = @showId');
     
     if (showResult.recordset.length === 0) throw new Error('Suất chiếu không tồn tại');
     
@@ -134,7 +135,7 @@ class ShowModel {
    * Tạo suất chiếu mới (Admin) - kiểm tra xung đột thời gian
    */
   static async create(showData: ShowData): Promise<Show> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     // Kiểm tra xung đột thời gian trong cùng phòng chiếu
     const conflictResult = await pool.request()
@@ -143,7 +144,7 @@ class ShowModel {
       .input('showTime', mssql.Time, showData.showTime)
       .input('endTime', mssql.Time, showData.showTime) // Tạm thời, sẽ tính sau
       .query(`
-        SELECT COUNT(*) as cnt FROM Show 
+        SELECT COUNT(*) as cnt FROM Showtime 
         WHERE HallID = @hallId 
           AND ShowDate = @showDate
           AND (
@@ -178,7 +179,7 @@ class ShowModel {
       .input('format', mssql.NVarChar, showData.format)
       .input('basePrice', mssql.Decimal(10, 2), showData.basePrice)
       .query(`
-        INSERT INTO Show (
+        INSERT INTO Showtime (
           MovieID, HallID, ShowDate, ShowTime, EndTime, Format, BasePrice
         ) 
         OUTPUT INSERTED.*
@@ -194,7 +195,7 @@ class ShowModel {
    * Cập nhật suất chiếu (Admin) - chỉ khi chưa có vé đặt
    */
   static async update(id: number, showData: Partial<ShowData>): Promise<Show> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     // Kiểm tra xem đã có vé đặt chưa
     const bookingResult = await pool.request()
@@ -236,7 +237,7 @@ class ShowModel {
     if (updates.length === 0) throw new Error('Không có dữ liệu cập nhật');
     
     await request.query(`
-      UPDATE Show SET ${updates.join(', ')}
+      UPDATE Showtime SET ${updates.join(', ')}
       WHERE ShowID = @id
     `);
     
@@ -247,7 +248,7 @@ class ShowModel {
    * Xóa suất chiếu (Admin) - kiểm tra không có vé
    */
   static async delete(id: number): Promise<{ ShowID: number }> {
-    const pool = await mssql.connect();
+    const pool = await connectDB();
     
     const bookingResult = await pool.request()
       .input('showId', mssql.Int, id)
@@ -259,7 +260,7 @@ class ShowModel {
     
     await pool.request()
       .input('id', mssql.Int, id)
-      .query('DELETE FROM Show WHERE ShowID = @id');
+      .query('DELETE FROM Showtime WHERE ShowID = @id');
     
     return { ShowID: id };
   }

@@ -2,12 +2,12 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/helpers/async.handler';
 import { AppException } from '../../utils/exceptions/app.exception';
 import { ErrorCode } from '../../utils/exceptions/error.code';
-import * as showService from '../../services/show.service';
-import * as cinemaService from '../../services/cinema.service';
+import ShowService from '../../services/show.service';
+import CinemaService from '../../services/cinema.service';
 
 // GET /api/shows/:id — Chi tiết suất chiếu
 export const getShowById = asyncHandler(async (req: Request, res: Response) => {
-  const show = await showService.getById(Number(req.params.id));
+  const show = await ShowService.getById(Number(req.params.id));
   return res.status(200).json({ success: true, data: show });
 });
 
@@ -16,7 +16,7 @@ export const getShowSeats = asyncHandler(async (req: Request, res: Response) => 
   const showId = Number(req.params.id);
   
   // Lấy sơ đồ ghế từ DB
-  const seatData = await showService.getSeatsByShowId(showId);
+  const seatData = await ShowService.getSeatsByShowId(showId);
   if (!seatData) {
     throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm SHOW_NOT_FOUND
   }
@@ -43,7 +43,7 @@ export const getShowsByCinema = asyncHandler(async (req: Request, res: Response)
   if (showDate) filters.showDate = new Date(showDate as string);
   if (format) filters.format = format;
   
-  const shows = await showService.getByCinemaId(cinemaId, filters);
+  const shows = await ShowService.getByCinemaId(cinemaId, filters);
   return res.status(200).json({ success: true, data: shows });
 });
 
@@ -52,7 +52,7 @@ export const createShow = asyncHandler(async (req: Request, res: Response) => {
   const showData = req.body;
   
   // Kiểm tra phòng chiếu tồn tại
-  const hall = await cinemaService.getHallById(showData.hallId);
+  const hall = await CinemaService.getHallById(showData.hallId);
   if (!hall) {
     throw new AppException(ErrorCode.USER_NOT_EXISTED); // TODO: Thêm HALL_NOT_FOUND
   }
@@ -67,18 +67,18 @@ export const createShow = asyncHandler(async (req: Request, res: Response) => {
     showData.endTime = endTime.toTimeString().split(' ')[0];
   }
   
-  const show = await showService.create(showData);
+  const show = await ShowService.create(showData);
   return res.status(201).json({ success: true, data: show, message: 'Tạo suất chiếu thành công' });
 });
 
 // PUT /api/admin/shows/:id — Cập nhật suất chiếu (Admin, chỉ nếu chưa có vé)
 export const updateShow = asyncHandler(async (req: Request, res: Response) => {
-  const show = await showService.update(Number(req.params.id), req.body);
+  const show = await ShowService.update(Number(req.params.id), req.body);
   return res.status(200).json({ success: true, data: show, message: 'Cập nhật suất chiếu thành công' });
 });
 
 // DELETE /api/admin/shows/:id — Xóa suất chiếu (Admin, kiểm tra không có vé)
 export const deleteShow = asyncHandler(async (req: Request, res: Response) => {
-  await showService.delete(Number(req.params.id));
+  await ShowService.delete(Number(req.params.id));
   return res.status(200).json({ success: true, data: null, message: 'Xóa suất chiếu thành công' });
 });

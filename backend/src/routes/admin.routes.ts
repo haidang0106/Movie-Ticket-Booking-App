@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import * as adminController from '../controllers/admin.controller';
+import { AdminController } from '../controllers/admin.controller';
 import * as movieController from '../controllers/movie/movie.controller';
 import * as cinemaController from '../controllers/cinema/cinema.controller';
 import * as showController from '../controllers/show/show.controller';
@@ -33,16 +33,16 @@ router.put('/shows/:id', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']
 router.delete('/shows/:id', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), showController.deleteShow);
 
 // === Thống kê & Báo cáo (M8) ===
-router.get('/stats/revenue', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), adminController.getStats);
-router.get('/stats/tickets', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), adminController.getStats); // TODO: Tạo controller riêng
-router.get('/stats/accounts', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), adminController.getStats); // TODO: Tạo controller riêng
+router.get('/stats/revenue', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), AdminController.getStats);
+router.get('/stats/tickets', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), AdminController.getStats); // TODO: Tạo controller riêng
+router.get('/stats/accounts', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), AdminController.getStats); // TODO: Tạo controller riêng
 
 // === Nhật ký & Cài đặt (M8) ===
-router.get('/audit-logs', authMiddleware, roleMiddleware(['SUPER_ADMIN']), adminController.getAuditLogs);
-router.get('/settings', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), adminController.getSettings);
-router.put('/settings', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), adminController.updateSettings); // TODO: Tạo controller method
+router.get('/audit-logs', authMiddleware, roleMiddleware(['SUPER_ADMIN']), AdminController.getAuditLogs);
+router.get('/settings', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), AdminController.getSettings);
+// router.put('/settings', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), AdminController.updateSettings); // TODO: Tạo controller method
 
 // === Quản lý tài khoản ===
-router.put('/accounts/:id/status', authMiddleware, roleMiddleware(['SUPER_ADMIN']), adminController.patchAccountStatus);
+router.put('/accounts/:id/status', authMiddleware, roleMiddleware(['SUPER_ADMIN']), AdminController.patchAccountStatus);
 
 export default router;

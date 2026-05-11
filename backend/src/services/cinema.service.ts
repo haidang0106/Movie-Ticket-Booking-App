@@ -45,7 +45,7 @@ class CinemaService {
       .input('cityId', sql.Int, cityId)
       .query(`
         SELECT c.*, ct.CityName 
-        FROM Cinema c
+        FROM CinemaComplex c
         JOIN City ct ON c.CityID = ct.CityID
         WHERE c.CityID = @cityId AND c.IsActive = 1
         ORDER BY c.CinemaName
