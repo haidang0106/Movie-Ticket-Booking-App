@@ -6,12 +6,12 @@ import dotenv from 'dotenv';
 
 import { connectDB } from './config/database';
 import { globalExceptionHandler } from './utils/exceptions/global.exception.handler';
-import authRoutes from './routes/auth.routes';
-import customerRoutes from './routes/customer.routes';
-import adminRoutes from './routes/admin.routes';
-import movieRoutes from './routes/movie.routes';
-import cinemaRoutes from './routes/cinema.routes';
-import showRoutes from './routes/show.routes';
+import authRoutes from './routes/auth/auth.routes';
+import customerRoutes from './routes/customer/customer.routes';
+import adminRoutes from './routes/admin/admin.routes';
+import movieRoutes from './routes/movie/movie.routes';
+import cinemaRoutes from './routes/cinema/cinema.routes';
+import showRoutes from './routes/show/show.routes';
 
 // Load biến môi trường từ file .env
 dotenv.config();
