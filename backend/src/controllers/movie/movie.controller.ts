@@ -65,37 +65,36 @@ export const likeMovie = asyncHandler(async (req: Request, res: Response) => {
   const customerId = req.user?.customerId;
   
   if (!customerId) {
-    throw new AppException(ErrorCode.UNAUTHORIZED);
+    throw new AppException(ErrorCode.UNAUTHENTICATED);
   }
   
   const isLiked = await MovieService.toggleLike(movieId, customerId);
   return res.status(200).json(ApiResponse.success(
     ResponseCode.SUCCESS, 
-    { isLiked }, 
-    isLiked ? 'Đã thích phim' : 'Đã bỏ thích phim'
+    { isLiked }
   ));
 });
 
 // POST /api/admin/movies — Thêm phim (Admin)
 export const createMovie = asyncHandler(async (req: Request, res: Response) => {
   const movie = await MovieService.create(req.body);
-  return res.status(201).json(ApiResponse.success(ResponseCode.USER_CREATED, movie, 'Thêm phim thành công'));
+  return res.status(201).json(ApiResponse.success(ResponseCode.USER_CREATED, movie));
 });
 
 // PUT /api/admin/movies/:id — Sửa phim (Admin)
 export const updateMovie = asyncHandler(async (req: Request, res: Response) => {
   const movie = await MovieService.update(parseInt(req.params.id), req.body);
-  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, movie, 'Cập nhật phim thành công'));
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, movie));
 });
 
 // DELETE /api/admin/movies/:id — Xóa phim (Admin - soft delete)
 export const deleteMovie = asyncHandler(async (req: Request, res: Response) => {
   const result = await MovieService.delete(parseInt(req.params.id));
-  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, result, 'Xóa phim thành công'));
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, result));
 });
 
 // PUT /api/admin/movies/:id/featured — Bật/tắt phim nổi bật (Admin)
 export const toggleFeaturedMovie = asyncHandler(async (req: Request, res: Response) => {
   const result = await MovieService.toggleFeatured(parseInt(req.params.id));
-  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, result, 'Đã thay đổi trạng thái nổi bật'));
+  return res.status(200).json(ApiResponse.success(ResponseCode.SUCCESS, result));
 });
