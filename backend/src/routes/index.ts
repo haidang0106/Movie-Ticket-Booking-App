@@ -1,17 +1,16 @@
 import { Router } from 'express';
 
-// Import route modules
-import authRoutes from './auth.routes';
-import customerRoutes from './customer.routes';
-import movieRoutes from './movie.routes';
-import cinemaRoutes from './cinema.routes';
-import showRoutes from './show.routes';
-import adminRoutes from './admin.routes';
-// import bookingRoutes from './booking.routes';
-// import notificationRoutes from './notification.routes';
-// import paymentRoutes from './payment.routes';
-// import productRoutes from './product.routes';
-// import voucherRoutes from './voucher.routes';
+import authRoutes from './auth/auth.routes';
+import customerRoutes from './customer/customer.routes';
+import movieRoutes from './movie/movie.routes';
+import cinemaRoutes from './cinema/cinema.routes';
+import showRoutes from './show/show.routes';
+import adminRoutes from './admin/admin.routes';
+// import bookingRoutes from './booking/booking.routes';
+// import notificationRoutes from './notification/notification.routes';
+// import paymentRoutes from './payment/payment.routes';
+// import productRoutes from './product/product.routes';
+// import voucherRoutes from './voucher/voucher.routes';
 
 const router = Router();
 

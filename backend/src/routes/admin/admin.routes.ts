@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { AdminController } from '../controllers/admin.controller';
-import * as movieController from '../controllers/movie/movie.controller';
-import * as cinemaController from '../controllers/cinema/cinema.controller';
-import * as showController from '../controllers/show/show.controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
-import { roleMiddleware } from '../middlewares/role.middleware';
+import { AdminController } from '../../controllers/admin/admin.controller';
+import * as movieController from '../../controllers/movie/movie.controller';
+import * as cinemaController from '../../controllers/cinema/cinema.controller';
+import * as showController from '../../controllers/show/show.controller';
+import { authMiddleware } from '../../middlewares/auth.middleware';
+import { roleMiddleware } from '../../middlewares/role.middleware';
 
 const router = Router();
 

@@ -1,17 +1,16 @@
 import { Router } from 'express';
 import * as showController from '../../controllers/show/show.controller';
-import { authMiddleware } from '../../middlewares/auth.middleware';
-import { roleMiddleware } from '../../middlewares/role.middleware';
 
 const router = Router();
 
-// === Route công khai (không cần đăng nhập) ===
-router.get('/:id', showController.getShowById);                    // Chi tiết suất chiếu
-router.get('/:id/seats', showController.getShowSeats);            // Sơ đồ ghế
+// ===============================
+// PUBLIC ROUTES
+// ===============================
 
-// === Route quản trị (chỉ ADMIN/SUPER_ADMIN) ===
-router.post('/', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), showController.createShow);
-router.put('/:id', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), showController.updateShow);
-router.delete('/:id', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), showController.deleteShow);
+// GET /api/shows/:id — Chi tiết suất chiếu
+router.get('/:id', showController.getShowById);
+
+// GET /api/shows/:id/seats — Sơ đồ ghế kèm trạng thái realtime
+router.get('/:id/seats', showController.getShowSeats);
 
 export default router;
