@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .preserve-aspect-ratio-none {
+    preserveAspectRatio: none;
+  }
+}
+
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
+}
+
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: theme('colors.page-bg');
+}
+
+.sparkline-area { fill: url(#sparkline-gradient); }
+.sparkline-line { stroke: #EF4444; stroke-width: 2; fill: none; }
+.sparkline-line-success { stroke: #10B981; stroke-width: 2; fill: none; }
+.chart-area { fill: url(#chart-gradient); }
