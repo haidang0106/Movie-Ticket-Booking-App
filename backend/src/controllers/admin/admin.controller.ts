@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AdminModel } from '../models/admin.model';
+import { AdminModel } from '../../models/admin.model';
 
 /**
  * Admin Controller (TV5)
