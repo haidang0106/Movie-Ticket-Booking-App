@@ -6,18 +6,17 @@ import { roleMiddleware } from '../../middlewares/role.middleware';
 
 const router = Router();
 
-// === Route công khai (không cần đăng nhập) ===
-router.get('/', cinemaController.getCinemas);                      // Danh sách cụm rạp
-router.get('/cities', cinemaController.getCities);                  // Danh sách thành phố
-router.get('/:id', cinemaController.getCinemaById);                // Chi tiết cụm rạp
-router.get('/:id/shows', showController.getShowsByCinema);       // Lịch chiếu theo cụm rạp
+// ===============================
+// PUBLIC ROUTES
+// ===============================
 
-// === Route quản trị (chỉ ADMIN/SUPER_ADMIN) ===
-router.post('/', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), cinemaController.createCinema);
-router.put('/:id', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), cinemaController.updateCinema);
-router.delete('/:id', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), cinemaController.deleteCinema);
-router.get('/:id/halls', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), cinemaController.getHallsByCinema);
-router.put('/:id/halls', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), cinemaController.createHall);
-router.put('/halls/:id/seats', authMiddleware, roleMiddleware(['ADMIN', 'SUPER_ADMIN']), cinemaController.updateHallSeats);
+// GET /api/cinemas — Danh sách cụm rạp
+router.get('/', cinemaController.getCinemas);
+
+// GET /api/cinemas/:id — Chi tiết cụm rạp kèm phòng chiếu
+router.get('/:id', cinemaController.getCinemaById);
+
+// GET /api/cinemas/:id/shows — Lịch chiếu theo cụm rạp
+router.get('/:id/shows', showController.getShowsByCinema);
 
 export default router;

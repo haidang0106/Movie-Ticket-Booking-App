@@ -1,47 +1,35 @@
 import { Router } from 'express';
+import { AuthController } from '../../controllers/auth/auth.controller';
+import { authValidator } from '../../validators/auth.validator';
 import { authMiddleware } from '../../middlewares/auth.middleware';
-
-// TODO: Import Controller & Validator khi bạn tạo xong các file này
-// import { AuthController } from '../../controllers/auth/auth.controller';
-// import { AuthValidator } from '../../validators/auth.validator';
 
 const router = Router();
 
-// ================================
-// AUTH — Xác thực & Đăng ký
-// ================================
+// Định tuyến API Đăng ký yêu cầu cấp OTP
+router.post('/register', authValidator.validateRegister, AuthController.register);
 
-/**
- * Các route dưới đây đã được định nghĩa theo chuẩn thiết kế từ AGENTS.md.
- * Vui lòng tạo file auth.controller.ts, sau đó gỡ comment (uncomment) để sử dụng.
- */
+// Định tuyến API Xác nhận OTP để tạo tài khoản thật sự
+router.post('/verify-otp', authValidator.validateVerifyOtp, AuthController.verifyOtp);
 
-// POST /api/auth/register → Đăng ký tài khoản (gửi OTP)
-// router.post('/register', AuthValidator.register, AuthController.register);
+// Định tuyến API Đăng nhập tài khoản (cơ bản)
+router.post('/login', authValidator.validateLogin, AuthController.login);
 
-// POST /api/auth/verify-otp → Xác minh OTP đăng ký
-// router.post('/verify-otp', AuthValidator.verifyOtp, AuthController.verifyOtp);
+// Định tuyến API Refresh Token
+router.post('/refresh-token', authValidator.validateRefreshToken, AuthController.refreshToken);
 
-// POST /api/auth/resend-otp → Gửi lại OTP (throttle 3/15 phút)
-// router.post('/resend-otp', AuthValidator.resendOtp, AuthController.resendOtp);
+// Định tuyến API Logout (Yêu cầu phải có Access Token)
+router.post('/logout', authMiddleware, authValidator.validateLogout, AuthController.logout);
 
-// POST /api/auth/login → Đăng nhập (trả JWT Access + Refresh)
-// router.post('/login', AuthValidator.login, AuthController.login);
+// Định tuyến API Quên mật khẩu
+router.post('/forgot-password', authValidator.validateForgotPassword, AuthController.forgotPassword);
 
-// POST /api/auth/refresh-token → Làm mới Access Token
-// router.post('/refresh-token', AuthValidator.refreshToken, AuthController.refreshToken);
+// Định tuyến API Xác thực mã OTP đặt lại mật khẩu
+router.post('/verify-reset-otp', authValidator.validateVerifyResetOtp, AuthController.verifyResetOtp);
 
-// POST /api/auth/forgot-password → Gửi OTP đặt lại mật khẩu
-// router.post('/forgot-password', AuthValidator.forgotPassword, AuthController.forgotPassword);
+// Định tuyến API Đặt lại mật khẩu
+router.post('/reset-password', authValidator.validateResetPassword, AuthController.resetPassword);
 
-// POST /api/auth/reset-password → Xác minh OTP + đặt mật khẩu mới
-// router.post('/reset-password', AuthValidator.resetPassword, AuthController.resetPassword);
-
-// POST /api/auth/change-password → Đổi mật khẩu (khi đã đăng nhập)
-// Cần đi qua authMiddleware để kiểm tra token trước
-// router.post('/change-password', authMiddleware, AuthValidator.changePassword, AuthController.changePassword);
-
-// POST /api/auth/logout → Đăng xuất (blacklist token)
-// router.post('/logout', authMiddleware, AuthController.logout);
+// Định tuyến API Đổi mật khẩu (Yêu cầu phải có Access Token)
+router.post('/change-password', authMiddleware, authValidator.validateChangePassword, AuthController.changePassword);
 
 export default router;
