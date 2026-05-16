@@ -27,6 +27,8 @@ export const ErrorCode = {
   SEAT_CONSTRAINT_VIOLATION: { code: 1012, message: 'Vi phạm ràng buộc ghế', statusCode: 422 },
   SEAT_ALREADY_BOOKED: { code: 1013, message: 'Ghế đã được đặt', statusCode: 409 },
   SEAT_ALREADY_HELD: { code: 1014, message: 'Ghế đang được giữ', statusCode: 409 },
+  INVALID_HMAC_SIGNATURE: { code: 4001, message: 'Chữ ký HMAC không hợp lệ', statusCode: 401 },
+  MISSING_HMAC_SIGNATURE: { code: 4002, message: 'Thiếu chữ ký HMAC', statusCode: 401 },
 } as const;
 
 export type ErrorCodeKeys = keyof typeof ErrorCode;
