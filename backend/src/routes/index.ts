@@ -8,7 +8,7 @@ import showRoutes from './show/show.routes';
 import adminRoutes from './admin/admin.routes';
 // import bookingRoutes from './booking/booking.routes';
 // import notificationRoutes from './notification/notification.routes';
-// import paymentRoutes from './payment/payment.routes';
+import paymentRoutes from './payment/payment.routes';
 // import productRoutes from './product/product.routes';
 // import voucherRoutes from './voucher/voucher.routes';
 
@@ -23,7 +23,7 @@ router.use('/shows', showRoutes);
 router.use('/admin', adminRoutes);
 // router.use('/bookings', bookingRoutes);
 // router.use('/notifications', notificationRoutes);
-// router.use('/payments', paymentRoutes);
+router.use('/payments', paymentRoutes);
 // router.use('/products', productRoutes);
 // router.use('/vouchers', voucherRoutes);
 
